@@ -33,18 +33,10 @@ class FilesService {
 
     // Get workflow template for department and file type
     async getWorkflowTemplate(departmentId, fileType) {
-        // Try department + file type specific
+        // Try department specific template first
         let template = await this.db('workflow_templates')
             .where({ department_id: departmentId, is_active: true })
-            .whereRaw('? = ANY(file_types)', [fileType])
             .first();
-
-        // Fallback to department default
-        if (!template) {
-            template = await this.db('workflow_templates')
-                .where({ department_id: departmentId, is_active: true })
-                .first();
-        }
 
         // Fallback to system default
         if (!template) {
@@ -53,8 +45,15 @@ class FilesService {
                 .first();
         }
 
+        // If still no template, get any active template
         if (!template) {
-            throw new AppError('No workflow template found', 500);
+            template = await this.db('workflow_templates')
+                .where({ is_active: true })
+                .first();
+        }
+
+        if (!template) {
+            throw new AppError('No workflow template found. Please create a workflow template first.', 500);
         }
 
         // Get levels
