@@ -339,29 +339,29 @@ await knex("workflow_template_levels").insert([
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    WORKFLOW LEVEL MATCHING                       │
+│                    WORKFLOW LEVEL MATCHING                      │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Workflow Level 1 →  requires → Section_Officer   role          │
+│                                                                 |
+│  Workflow Level 1 →  requires → Section_Officer   role          | 
 │  Workflow Level 2 →  requires → Under_Secretary   role          │
 │  Workflow Level 3 →  requires → Deputy_Secretary  role          │
-│                                                                  │
+│                                                                 │
 │  ═══════════════════════════════════════════════════════════    │
-│                                                                  │
-│  ❓ Question: Suresh (Section_Officer) ko Level 2 file dikhai    │
-│              degi kya?                                           │
-│                                                                  │
-│  ❌ Answer: NAHI! Kyunki:                                        │
-│     - Level 2 ko Under_Secretary chahiye                         │
-│     - Suresh ke paas Section_Officer role hai                    │
-│     - Role match nahi hua → File nahi dikhega                    │
-│                                                                  │
+│                                                                 │
+│  ❓ Question: Suresh (Section_Officer) ko Level 2 file dikhai   
+│              degi kya?                                          │
+│                                                                 │
+│  ❌ Answer: NAHI! Kyunki:                                      
+│     - Level 2 ko Under_Secretary chahiye                        │
+│     - Suresh ke paas Section_Officer role hai                   │
+│     - Role match nahi hua → File nahi dikhega                   │
+│                                                                 │
 │  ═══════════════════════════════════════════════════════════    │
-│                                                                  │
-│  ✅ Suresh ka In-Tray sirf Level 1 files dikhaega                │
-│  ✅ Mahesh ka In-Tray sirf Level 2 files dikhaega                │
-│  ✅ Dinesh ka In-Tray sirf Level 3 files dikhaega                │
-│                                                                  │
+│                                                                 │
+│  ✅ Suresh ka In-Tray sirf Level 1 files dikhaega               
+│  ✅ Mahesh ka In-Tray sirf Level 2 files dikhaega               
+│  ✅ Dinesh ka In-Tray sirf Level 3 files dikhaega              
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
