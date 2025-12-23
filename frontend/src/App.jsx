@@ -22,7 +22,13 @@ import FileCreatePage from './pages/Files/FileCreatePage';
 import FileDetailPage from './pages/Files/FileDetailPage';
 import DaakListPage from './pages/Daak/DaakListPage';
 import DaakCreatePage from './pages/Daak/DaakCreatePage';
+import DaakDetailPage from './pages/Daak/DaakDetailPage';
 import SearchPage from './pages/Search/SearchPage';
+
+// Admin Pages
+import UsersPage from './pages/Admin/UsersPage';
+import DepartmentsPage from './pages/Admin/DepartmentsPage';
+import WorkflowsPage from './pages/Admin/WorkflowsPage';
 
 function App() {
   return (
@@ -57,19 +63,18 @@ function App() {
                       <Route path="inward" element={<DaakListPage />} />
                       <Route path="outward" element={<DaakListPage />} />
                       <Route path="create" element={<DaakCreatePage />} />
-                      <Route path=":id" element={<DaakListPage />} />
+                      <Route path=":id" element={<DaakDetailPage />} />
                     </Route>
 
                     {/* Search */}
                     <Route path="search" element={<SearchPage />} />
 
-                    {/* Admin Routes (placeholder) */}
-                    <Route path="admin/*" element={
-                      <div style={{ padding: 20 }}>
-                        <h2>Admin Module</h2>
-                        <p>Admin functionality would be implemented here.</p>
-                      </div>
-                    } />
+                    {/* Admin Routes */}
+                    <Route path="admin">
+                      <Route path="users" element={<UsersPage />} />
+                      <Route path="departments" element={<DepartmentsPage />} />
+                      <Route path="workflows" element={<WorkflowsPage />} />
+                    </Route>
 
                     {/* 404 */}
                     <Route path="*" element={

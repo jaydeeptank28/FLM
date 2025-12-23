@@ -345,6 +345,51 @@ class ApiService {
         const response = await this.request('/admin/dashboard');
         return response.data;
     }
+
+    // Additional Department Methods
+    async createDepartment(data) {
+        const response = await this.request('/departments', {
+            method: 'POST',
+            body: data
+        });
+        return response.data;
+    }
+
+    async updateDepartment(id, data) {
+        const response = await this.request(`/departments/${id}`, {
+            method: 'PATCH',
+            body: data
+        });
+        return response.data;
+    }
+
+    async deleteDepartment(id) {
+        const response = await this.request(`/departments/${id}`, {
+            method: 'DELETE'
+        });
+        return response.data;
+    }
+
+    // Additional User Methods
+    async deleteUser(id) {
+        const response = await this.request(`/users/${id}`, {
+            method: 'DELETE'
+        });
+        return response.data;
+    }
+
+    // Additional Workflow Methods
+    async getWorkflowTemplate(id) {
+        const response = await this.request(`/admin/workflow-templates/${id}`);
+        return response.data;
+    }
+
+    async deleteWorkflowTemplate(id) {
+        const response = await this.request(`/admin/workflow-templates/${id}`, {
+            method: 'DELETE'
+        });
+        return response.data;
+    }
 }
 
 // Singleton instance
