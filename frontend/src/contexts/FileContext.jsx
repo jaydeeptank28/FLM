@@ -10,6 +10,7 @@ const FileContext = createContext(null);
 export function FileProvider({ children }) {
     const [files, setFiles] = useState([]);
     const [currentFile, setCurrentFile] = useState(null);
+    const [folderCounts, setFolderCounts] = useState({});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const { currentDepartmentId } = useAuth();
@@ -123,6 +124,17 @@ export function FileProvider({ children }) {
             setError(null);
             const updatedFile = await api.performWorkflowAction(fileId, action, remarks);
             setCurrentFile(updatedFile);
+            
+            // Auto-refresh folder counts after workflow action
+            if (currentDepartmentId) {
+                try {
+                    const counts = await api.getFolderCounts(currentDepartmentId);
+                    setFolderCounts(counts);
+                } catch (err) {
+                    console.error('Error refreshing folder counts:', err);
+                }
+            }
+            
             return { success: true, file: updatedFile };
         } catch (err) {
             setError(err.message);
@@ -130,7 +142,7 @@ export function FileProvider({ children }) {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [currentDepartmentId]);
 
     // Share file
     const shareFile = useCallback(async (fileId, userId) => {
@@ -187,7 +199,9 @@ export function FileProvider({ children }) {
     const getFolderCounts = useCallback(async () => {
         if (!currentDepartmentId) return {};
         try {
-            return await api.getFolderCounts(currentDepartmentId);
+            const counts = await api.getFolderCounts(currentDepartmentId);
+            setFolderCounts(counts);
+            return counts;
         } catch (err) {
             console.error('Error getting folder counts:', err);
             return {};
@@ -210,6 +224,7 @@ export function FileProvider({ children }) {
         // State
         files,
         currentFile,
+        folderCounts,
         loading,
         error,
 

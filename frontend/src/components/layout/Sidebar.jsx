@@ -51,24 +51,29 @@ function Sidebar({ open, onClose, onToggle }) {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const navigate = useNavigate();
     const location = useLocation();
-    const { getFolderCounts } = useFiles();
+    const { getFolderCounts, folderCounts: contextFolderCounts } = useFiles();
     const { getPendingCount } = useDaak();
     const { isAdmin } = useAuth();
 
     const [daakOpen, setDaakOpen] = useState(false);
     const [adminOpen, setAdminOpen] = useState(false);
-    const [folderCounts, setFolderCounts] = useState({});
+    const [localFolderCounts, setLocalFolderCounts] = useState({});
     const [pendingDaakCount, setPendingDaakCount] = useState(0);
 
-    // Load folder counts asynchronously
+    // Use context folderCounts if available, otherwise use local
+    const folderCounts = Object.keys(contextFolderCounts || {}).length > 0 
+        ? contextFolderCounts 
+        : localFolderCounts;
+
+    // Load folder counts on mount
     useEffect(() => {
         const loadCounts = async () => {
             try {
                 const counts = await getFolderCounts();
-                setFolderCounts(counts || {});
+                setLocalFolderCounts(counts || {});
             } catch (error) {
                 console.error('Error loading folder counts:', error);
-                setFolderCounts({});
+                setLocalFolderCounts({});
             }
         };
         loadCounts();
