@@ -45,10 +45,17 @@ const getUsers = asyncHandler(async (req, res) => {
     return ApiResponse.success(res, users);
 });
 
+const deleteDepartment = asyncHandler(async (req, res) => {
+    const departmentsService = new DepartmentsService(req.db);
+    await departmentsService.delete(req.params.id);
+    return ApiResponse.success(res, null, 'Department deleted successfully');
+});
+
 module.exports = {
     getAll,
     getById,
     create,
     update,
-    getUsers
+    getUsers,
+    delete: deleteDepartment
 };

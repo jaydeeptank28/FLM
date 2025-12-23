@@ -17,6 +17,7 @@ router.get('/workflow-templates', adminController.getAllWorkflowTemplates);
 router.get('/workflow-templates/:id', adminController.getWorkflowTemplateById);
 router.post('/workflow-templates', adminController.createWorkflowTemplate);
 router.patch('/workflow-templates/:id', adminController.updateWorkflowTemplate);
+router.delete('/workflow-templates/:id', adminController.deleteWorkflowTemplate);
 
 // System Audit
 router.get('/audit', adminController.getSystemAuditLog);

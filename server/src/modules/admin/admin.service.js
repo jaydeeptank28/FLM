@@ -120,6 +120,19 @@ class AdminService {
         }
     }
 
+    async deleteWorkflowTemplate(id) {
+        const template = await this.db('workflow_templates').where({ id }).first();
+        if (!template) {
+            throw new AppError('Workflow template not found', 404);
+        }
+
+        // Delete levels first (CASCADE should handle this, but be explicit)
+        await this.db('workflow_template_levels').where({ template_id: id }).del();
+        await this.db('workflow_templates').where({ id }).del();
+
+        return true;
+    }
+
     // System Audit
     async getSystemAuditLog(filters = {}) {
         const { type, userId, fileId, daakId, dateFrom, dateTo, limit = 100 } = filters;

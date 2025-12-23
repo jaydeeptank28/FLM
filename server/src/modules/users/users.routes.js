@@ -13,6 +13,7 @@ router.get('/', usersController.getAll);
 router.get('/:id', usersController.getById);
 router.post('/', usersController.create);
 router.patch('/:id', usersController.update);
+router.delete('/:id', usersController.delete);
 router.post('/:id/reset-password', usersController.resetPassword);
 router.post('/:id/deactivate', usersController.deactivate);
 

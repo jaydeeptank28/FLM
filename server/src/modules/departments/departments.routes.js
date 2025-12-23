@@ -16,5 +16,6 @@ router.get('/:id/users', departmentsController.getUsers);
 // Write operations require Admin role
 router.post('/', authorize('Admin'), departmentsController.create);
 router.patch('/:id', authorize('Admin'), departmentsController.update);
+router.delete('/:id', authorize('Admin'), departmentsController.delete);
 
 module.exports = router;

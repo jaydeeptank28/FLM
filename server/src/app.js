@@ -37,6 +37,23 @@ app.use((req, res, next) => {
     next();
 });
 
+// Request logging middleware
+app.use((req, res, next) => {
+    const start = Date.now();
+    const timestamp = new Date().toLocaleTimeString();
+    
+    // Log when response finishes
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        const statusColor = res.statusCode >= 400 ? '\x1b[31m' : res.statusCode >= 300 ? '\x1b[33m' : '\x1b[32m';
+        const reset = '\x1b[0m';
+        const method = req.method.padEnd(7);
+        console.log(`${timestamp} | ${method} ${req.originalUrl} | ${statusColor}${res.statusCode}${reset} | ${duration}ms`);
+    });
+    
+    next();
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({

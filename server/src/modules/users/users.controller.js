@@ -58,11 +58,26 @@ const deactivate = asyncHandler(async (req, res) => {
     return ApiResponse.success(res, null, 'User deactivated successfully');
 });
 
+const deleteUser = asyncHandler(async (req, res) => {
+    const usersService = new UsersService(req.db);
+    
+    // Prevent deleting admin user
+    const user = await usersService.getById(req.params.id);
+    const isAdmin = user.departmentRoles?.some(r => r.role === 'Admin');
+    if (isAdmin) {
+        return ApiResponse.badRequest(res, 'Cannot delete admin user');
+    }
+    
+    await usersService.delete(req.params.id);
+    return ApiResponse.success(res, null, 'User deleted successfully');
+});
+
 module.exports = {
     getAll,
     getById,
     create,
     update,
     resetPassword,
-    deactivate
+    deactivate,
+    delete: deleteUser
 };

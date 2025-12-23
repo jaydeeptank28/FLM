@@ -170,6 +170,20 @@ class UsersService {
 
         return true;
     }
+
+    async delete(id) {
+        const user = await this.db('users').where({ id }).first();
+        if (!user) {
+            throw new AppError('User not found', 404);
+        }
+
+        // Delete related data
+        await this.db('refresh_tokens').where({ user_id: id }).del();
+        await this.db('user_department_roles').where({ user_id: id }).del();
+        await this.db('users').where({ id }).del();
+
+        return true;
+    }
 }
 
 module.exports = UsersService;

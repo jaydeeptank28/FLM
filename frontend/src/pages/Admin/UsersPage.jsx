@@ -59,9 +59,14 @@ function UsersPage() {
         { value: 'Deputy Secretary', label: 'Deputy Secretary' },
         { value: 'Joint Secretary', label: 'Joint Secretary' },
         { value: 'Additional Secretary', label: 'Additional Secretary' },
-        { value: 'Secretary', label: 'Secretary' },
-        { value: 'Admin', label: 'Admin' }
+        { value: 'Secretary', label: 'Secretary' }
     ];
+
+    // Filter out admin users for display
+    const displayUsers = users.filter(user => {
+        const isAdmin = user.departmentRoles?.some(r => r.role === 'Admin');
+        return !isAdmin;
+    });
 
     useEffect(() => {
         loadData();
@@ -254,7 +259,7 @@ function UsersPage() {
             {/* Users Table */}
             <Card>
                 <CardContent>
-                    {users.length === 0 ? (
+                    {displayUsers.length === 0 ? (
                         <Alert severity="info">No users found. Create your first user.</Alert>
                     ) : (
                         <TableContainer>
@@ -270,7 +275,7 @@ function UsersPage() {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {users.map((user) => (
+                                    {displayUsers.map((user) => (
                                         <TableRow key={user.id}>
                                             <TableCell>
                                                 <Typography fontWeight={500}>{user.name}</Typography>

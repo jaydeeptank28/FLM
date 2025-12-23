@@ -34,6 +34,12 @@ const updateWorkflowTemplate = asyncHandler(async (req, res) => {
     return ApiResponse.success(res, template, 'Workflow template updated');
 });
 
+const deleteWorkflowTemplate = asyncHandler(async (req, res) => {
+    const adminService = new AdminService(req.db);
+    await adminService.deleteWorkflowTemplate(req.params.id);
+    return ApiResponse.success(res, null, 'Workflow template deleted');
+});
+
 // System Audit
 const getSystemAuditLog = asyncHandler(async (req, res) => {
     const { type, userId, fileId, daakId, dateFrom, dateTo, limit } = req.query;
@@ -59,6 +65,7 @@ module.exports = {
     getWorkflowTemplateById,
     createWorkflowTemplate,
     updateWorkflowTemplate,
+    deleteWorkflowTemplate,
     getSystemAuditLog,
     getDashboardStats
 };

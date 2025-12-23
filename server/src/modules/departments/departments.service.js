@@ -84,6 +84,20 @@ class DepartmentsService {
             })
             .orderBy('users.name');
     }
+
+    async delete(id) {
+        const department = await this.db('departments').where({ id }).first();
+        if (!department) {
+            throw new AppError('Department not found', 404);
+        }
+
+        // Delete related data
+        await this.db('user_department_roles').where({ department_id: id }).del();
+        await this.db('workflow_templates').where({ department_id: id }).update({ department_id: null });
+        await this.db('departments').where({ id }).del();
+
+        return true;
+    }
 }
 
 module.exports = DepartmentsService;
