@@ -81,24 +81,68 @@ export const STATE_TRANSITIONS = {
   [FILE_STATES.ARCHIVED]: []
 };
 
-// Roles
+// FLM Standard Roles with Authority Levels
 export const ROLES = {
-  INITIATOR: 'Initiator',
-  FIRST_LEVEL_APPROVER: 'First Level Approver',
-  SECOND_LEVEL_APPROVER: 'Second Level Approver',
-  THIRD_LEVEL_APPROVER: 'Third Level Approver',
-  FINAL_APPROVER: 'Final Approver',
-  ADMIN: 'Admin'
+  Clerk: 'Clerk',
+  Section_Officer: 'Section_Officer',
+  Under_Secretary: 'Under_Secretary',
+  Deputy_Secretary: 'Deputy_Secretary',
+  Joint_Secretary: 'Joint_Secretary',
+  Additional_Secretary: 'Additional_Secretary',
+  Secretary: 'Secretary',
+  Admin: 'Admin'
 };
 
-// Role hierarchy for workflow levels
-export const ROLE_LEVELS = {
-  [ROLES.INITIATOR]: 0,
-  [ROLES.FIRST_LEVEL_APPROVER]: 1,
-  [ROLES.SECOND_LEVEL_APPROVER]: 2,
-  [ROLES.THIRD_LEVEL_APPROVER]: 3,
-  [ROLES.FINAL_APPROVER]: 4,
-  [ROLES.ADMIN]: 99
+// Role display labels
+export const ROLE_LABELS = {
+  [ROLES.Clerk]: 'Clerk',
+  [ROLES.Section_Officer]: 'Section Officer',
+  [ROLES.Under_Secretary]: 'Under Secretary',
+  [ROLES.Deputy_Secretary]: 'Deputy Secretary',
+  [ROLES.Joint_Secretary]: 'Joint Secretary',
+  [ROLES.Additional_Secretary]: 'Additional Secretary',
+  [ROLES.Secretary]: 'Secretary',
+  [ROLES.Admin]: 'Administrator'
+};
+
+// Role authority levels (for skip logic display)
+export const ROLE_AUTHORITY = {
+  [ROLES.Clerk]: 1,
+  [ROLES.Section_Officer]: 2,
+  [ROLES.Under_Secretary]: 3,
+  [ROLES.Deputy_Secretary]: 4,
+  [ROLES.Joint_Secretary]: 5,
+  [ROLES.Additional_Secretary]: 6,
+  [ROLES.Secretary]: 7,
+  [ROLES.Admin]: 0  // Admin has management authority, not workflow authority
+};
+
+// Workflow-eligible roles (excludes Admin)
+export const WORKFLOW_ROLES = Object.keys(ROLES).filter(r => r !== 'Admin');
+
+// Workflow Level Status
+export const LEVEL_STATUS = {
+  PENDING: 'PENDING',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  SKIPPED: 'SKIPPED',
+  RETURNED: 'RETURNED'
+};
+
+export const LEVEL_STATUS_LABELS = {
+  [LEVEL_STATUS.PENDING]: 'Pending',
+  [LEVEL_STATUS.ACTIVE]: 'Active',
+  [LEVEL_STATUS.COMPLETED]: 'Completed',
+  [LEVEL_STATUS.SKIPPED]: 'Skipped',
+  [LEVEL_STATUS.RETURNED]: 'Returned'
+};
+
+export const LEVEL_STATUS_COLORS = {
+  [LEVEL_STATUS.PENDING]: 'default',
+  [LEVEL_STATUS.ACTIVE]: 'warning',
+  [LEVEL_STATUS.COMPLETED]: 'success',
+  [LEVEL_STATUS.SKIPPED]: 'info',
+  [LEVEL_STATUS.RETURNED]: 'error'
 };
 
 // Departments

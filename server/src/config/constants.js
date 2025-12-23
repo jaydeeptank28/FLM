@@ -1,12 +1,63 @@
-// Server-side constants - mirrors frontend but authoritative
+// Server-side constants - FLM Production Standards
+// Authoritative source for all FLM business rules
+
+/**
+ * Role Authority System
+ * Each role has a numeric authority level.
+ * Higher level = higher authority.
+ * Used for skip logic: if creator's authority >= workflow level's required authority,
+ * that level is automatically skipped.
+ */
+const ROLE_AUTHORITY = {
+    Clerk: 1,
+    Section_Officer: 2,
+    Under_Secretary: 3,
+    Deputy_Secretary: 4,
+    Joint_Secretary: 5,
+    Additional_Secretary: 6,
+    Secretary: 7,
+    Admin: 0  // Admin has management authority, not workflow authority
+};
+
+// Role display labels
+const ROLE_LABELS = {
+    Clerk: 'Clerk',
+    Section_Officer: 'Section Officer',
+    Under_Secretary: 'Under Secretary',
+    Deputy_Secretary: 'Deputy Secretary',
+    Joint_Secretary: 'Joint Secretary',
+    Additional_Secretary: 'Additional Secretary',
+    Secretary: 'Secretary',
+    Admin: 'Administrator'
+};
+
+// Get all workflow-eligible roles (excludes Admin)
+const WORKFLOW_ROLES = Object.keys(ROLE_AUTHORITY).filter(r => r !== 'Admin');
+
+// Get role authority level
+function getRoleAuthority(role) {
+    return ROLE_AUTHORITY[role] || 0;
+}
+
+// Check if role1 has higher or equal authority than role2
+function hasHigherOrEqualAuthority(role1, role2) {
+    return getRoleAuthority(role1) >= getRoleAuthority(role2);
+}
+
 module.exports = {
+    // Role Authority System
+    ROLE_AUTHORITY,
+    ROLE_LABELS,
+    WORKFLOW_ROLES,
+    getRoleAuthority,
+    hasHigherOrEqualAuthority,
+
     // File States
     FILE_STATES: {
         DRAFT: 'DRAFT',
-        SUBMITTED: 'SUBMITTED',
         IN_REVIEW: 'IN_REVIEW',
         RETURNED: 'RETURNED',
-        CABINET: 'CABINET',
+        CABINET: 'CABINET',       // On hold
         APPROVED: 'APPROVED',
         REJECTED: 'REJECTED',
         ARCHIVED: 'ARCHIVED'
@@ -25,10 +76,9 @@ module.exports = {
         ARCHIVE: 'ARCHIVE'
     },
 
-    // Valid state transitions
+    // Valid state transitions (action allowed from state)
     STATE_TRANSITIONS: {
         DRAFT: ['SAVE_DRAFT', 'SUBMIT'],
-        SUBMITTED: [],
         IN_REVIEW: ['APPROVE', 'RETURN', 'HOLD', 'REJECT'],
         RETURNED: ['RESUBMIT'],
         CABINET: ['RESUME'],
@@ -37,14 +87,13 @@ module.exports = {
         ARCHIVED: []
     },
 
-    // Roles
-    ROLES: {
-        INITIATOR: 'Initiator',
-        FIRST_LEVEL_APPROVER: 'First Level Approver',
-        SECOND_LEVEL_APPROVER: 'Second Level Approver',
-        THIRD_LEVEL_APPROVER: 'Third Level Approver',
-        FINAL_APPROVER: 'Final Approver',
-        ADMIN: 'Admin'
+    // Workflow Level Status
+    LEVEL_STATUS: {
+        PENDING: 'PENDING',    // Not yet reached
+        ACTIVE: 'ACTIVE',      // Current level
+        COMPLETED: 'COMPLETED', // Approved at this level
+        SKIPPED: 'SKIPPED',    // Skipped due to creator authority
+        RETURNED: 'RETURNED'   // Returned from this level
     },
 
     // Daak States

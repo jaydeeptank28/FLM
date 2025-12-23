@@ -129,6 +129,19 @@ const search = asyncHandler(async (req, res) => {
     return ApiResponse.success(res, files);
 });
 
+const getWorkflowPreview = asyncHandler(async (req, res) => {
+    const { departmentId, fileType } = req.query;
+
+    if (!departmentId) {
+        return ApiResponse.badRequest(res, 'Department ID required');
+    }
+
+    const filesService = new FilesService(req.db);
+    const preview = await filesService.getWorkflowPreview(departmentId, fileType, req.user.id);
+
+    return ApiResponse.success(res, preview);
+});
+
 const getFolderCounts = asyncHandler(async (req, res) => {
     const { departmentId } = req.query;
 
@@ -153,5 +166,6 @@ module.exports = {
     shareFile,
     toggleTrack,
     search,
+    getWorkflowPreview,
     getFolderCounts
 };

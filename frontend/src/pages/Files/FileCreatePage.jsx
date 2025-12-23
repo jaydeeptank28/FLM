@@ -1,5 +1,5 @@
-// File Create Page - Production API Version
-import React, { useState } from 'react';
+// File Create Page - FLM Production with Workflow Preview
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Box,
@@ -18,7 +18,9 @@ import {
     ListItemIcon,
     ListItemText,
     ListItemSecondaryAction,
-    CircularProgress
+    CircularProgress,
+    Chip,
+    Paper
 } from '@mui/material';
 import {
     Save as SaveIcon,
@@ -26,12 +28,17 @@ import {
     AttachFile as AttachFileIcon,
     Delete as DeleteIcon,
     Description as FileIcon,
-    ArrowBack as ArrowBackIcon
+    ArrowBack as ArrowBackIcon,
+    CheckCircle as CheckIcon,
+    SkipNext as SkipIcon,
+    RadioButtonUnchecked as PendingIcon,
+    Warning as WarningIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFiles } from '../../contexts/FileContext';
 import { useNotification } from '../../contexts/NotificationContext';
-import { FILE_TYPES, PRIORITIES, WORKFLOW_ACTIONS } from '../../utils/constants';
+import { FILE_TYPES, PRIORITIES, WORKFLOW_ACTIONS, ROLE_LABELS } from '../../utils/constants';
+import api from '../../services/api';
 
 function FileCreatePage() {
     const navigate = useNavigate();
@@ -55,6 +62,48 @@ function FileCreatePage() {
     const [documents, setDocuments] = useState([]);
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    
+    // Workflow preview state
+    const [workflowPreview, setWorkflowPreview] = useState(null);
+    const [workflowLoading, setWorkflowLoading] = useState(false);
+    const [workflowError, setWorkflowError] = useState(null);
+
+    // Fetch workflow preview when department/fileType changes
+    const fetchWorkflowPreview = useCallback(async (deptId, fileType) => {
+        if (!deptId) {
+            setWorkflowPreview(null);
+            return;
+        }
+
+        setWorkflowLoading(true);
+        setWorkflowError(null);
+
+        try {
+            const params = new URLSearchParams({ departmentId: deptId });
+            if (fileType) params.append('fileType', fileType);
+            
+            const response = await api.get(`/files/workflow-preview?${params}`);
+            
+            if (response.data.success && response.data.data.success) {
+                setWorkflowPreview(response.data.data.workflow);
+            } else {
+                setWorkflowError(response.data.data.error || 'No workflow found');
+                setWorkflowPreview(null);
+            }
+        } catch (error) {
+            setWorkflowError(error.response?.data?.message || 'Failed to load workflow');
+            setWorkflowPreview(null);
+        } finally {
+            setWorkflowLoading(false);
+        }
+    }, []);
+
+    // Fetch workflow when department or file type changes
+    useEffect(() => {
+        if (formData.departmentId) {
+            fetchWorkflowPreview(formData.departmentId, formData.fileType);
+        }
+    }, [formData.departmentId, formData.fileType, fetchWorkflowPreview]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -104,6 +153,12 @@ function FileCreatePage() {
     const handleSaveDraft = async () => {
         if (!validate()) return;
 
+        // Check workflow exists
+        if (!workflowPreview && !workflowLoading) {
+            showError('Cannot create file: No workflow configured for this department');
+            return;
+        }
+
         setLoading(true);
         try {
             const result = await createFile({
@@ -129,6 +184,12 @@ function FileCreatePage() {
 
     const handleSubmit = async () => {
         if (!validate()) return;
+
+        // Check workflow exists
+        if (!workflowPreview && !workflowLoading) {
+            showError('Cannot submit: No workflow configured for this department');
+            return;
+        }
 
         if (!formData.initialNoting.trim()) {
             setErrors(prev => ({ ...prev, initialNoting: 'Initial noting is required before submission' }));
@@ -166,6 +227,114 @@ function FileCreatePage() {
         }
     };
 
+    // Render workflow preview panel
+    const renderWorkflowPreview = () => {
+        if (workflowLoading) {
+            return (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2 }}>
+                    <CircularProgress size={20} />
+                    <Typography variant="body2" color="text.secondary">
+                        Loading workflow...
+                    </Typography>
+                </Box>
+            );
+        }
+
+        if (workflowError) {
+            return (
+                <Alert severity="error" icon={<WarningIcon />}>
+                    <Typography variant="subtitle2" fontWeight={600}>
+                        ⚠️ No Workflow Available
+                    </Typography>
+                    <Typography variant="body2">
+                        {workflowError}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        Please contact Admin to create a workflow for this department.
+                    </Typography>
+                </Alert>
+            );
+        }
+
+        if (!workflowPreview) {
+            return (
+                <Alert severity="info">
+                    <Typography variant="body2">
+                        Select a department and file type to preview the approval workflow.
+                    </Typography>
+                </Alert>
+            );
+        }
+
+        const skippedCount = workflowPreview.levels?.filter(l => l.willSkip).length || 0;
+
+        return (
+            <Paper sx={{ p: 2, bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
+                <Typography variant="subtitle2" fontWeight={700} color="success.dark" gutterBottom>
+                    ✅ Workflow: {workflowPreview.name}
+                </Typography>
+                
+                <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                    {workflowPreview.selectionReason}
+                </Typography>
+
+                {skippedCount > 0 && (
+                    <Alert severity="info" sx={{ my: 1, py: 0.5 }}>
+                        <Typography variant="caption">
+                            <strong>Skip Logic Active:</strong> {skippedCount} level(s) will be skipped because your role ({ROLE_LABELS[workflowPreview.creatorRole] || workflowPreview.creatorRole}) has equal/higher authority.
+                        </Typography>
+                    </Alert>
+                )}
+
+                <Divider sx={{ my: 1.5 }} />
+                
+                <Typography variant="caption" fontWeight={600} color="text.secondary">
+                    APPROVAL LEVELS:
+                </Typography>
+
+                <Box sx={{ mt: 1 }}>
+                    {workflowPreview.levels?.map((level, index) => (
+                        <Box 
+                            key={level.level} 
+                            sx={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 1, 
+                                py: 0.5,
+                                opacity: level.willSkip ? 0.6 : 1
+                            }}
+                        >
+                            {level.willSkip ? (
+                                <SkipIcon fontSize="small" color="info" />
+                            ) : level.level === workflowPreview.firstActiveLevel ? (
+                                <CheckIcon fontSize="small" color="warning" />
+                            ) : (
+                                <PendingIcon fontSize="small" color="disabled" />
+                            )}
+                            
+                            <Typography variant="body2" sx={{ textDecoration: level.willSkip ? 'line-through' : 'none' }}>
+                                L{level.level}: {ROLE_LABELS[level.role_required] || level.role_required}
+                            </Typography>
+
+                            {level.willSkip && (
+                                <Chip label="SKIP" size="small" color="info" variant="outlined" sx={{ height: 18, fontSize: '0.65rem' }} />
+                            )}
+                            {level.level === workflowPreview.firstActiveLevel && !level.willSkip && (
+                                <Chip label="START" size="small" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />
+                            )}
+                        </Box>
+                    ))}
+                </Box>
+
+                <Divider sx={{ my: 1.5 }} />
+                
+                <Typography variant="caption" color="text.secondary">
+                    After all levels → APPROVED → Archive (read-only)
+                </Typography>
+            </Paper>
+        );
+    };
+
     return (
         <Box>
             {/* Header */}
@@ -197,22 +366,7 @@ function FileCreatePage() {
                                 {/* File Number Preview */}
                                 <Grid item xs={12}>
                                     <Alert severity="info" icon={<FileIcon />}>
-                                        <strong>File Number:</strong> Will be auto-generated on save (Format: DEPT/YYYY/NNNN)
-                                    </Alert>
-                                </Grid>
-
-                                {/* Workflow Info */}
-                                <Grid item xs={12}>
-                                    <Alert severity="success" sx={{ mb: 0 }}>
-                                        <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                                            📋 How File Creation Works:
-                                        </Typography>
-                                        <Typography variant="body2" component="div">
-                                            <strong>1. Who can create files?</strong> Any user with a role in a department can create files.<br/>
-                                            <strong>2. Which workflow applies?</strong> System automatically picks: Department-specific → Default → Any active workflow.<br/>
-                                            <strong>3. File Flow:</strong> DRAFT → Submit → Level 1 → Level 2 → ... → APPROVED → ARCHIVE<br/>
-                                            <strong>4. After submission:</strong> File goes to approvers based on workflow levels.
-                                        </Typography>
+                                        <strong>File Number:</strong> Will be auto-generated on save (Format: FLM/DEPT/YYYY/NNNN)
                                     </Alert>
                                 </Grid>
 
@@ -246,7 +400,7 @@ function FileCreatePage() {
                                         value={formData.fileType}
                                         onChange={handleChange}
                                         error={!!errors.fileType}
-                                        helperText={errors.fileType}
+                                        helperText={errors.fileType || "Affects workflow selection"}
                                     >
                                         {fileTypes.map((type) => (
                                             <MenuItem key={type} value={type}>
@@ -266,7 +420,7 @@ function FileCreatePage() {
                                         onChange={handleChange}
                                         error={!!errors.subject}
                                         helperText={errors.subject || `${formData.subject.length}/200 characters`}
-                                        placeholder="Enter a descriptive subject for this file"
+                                        inputProps={{ maxLength: 200 }}
                                     />
                                 </Grid>
 
@@ -280,9 +434,9 @@ function FileCreatePage() {
                                         value={formData.priority}
                                         onChange={handleChange}
                                     >
-                                        {priorities.map((priority) => (
-                                            <MenuItem key={priority} value={priority}>
-                                                {priority}
+                                        {priorities.map((p) => (
+                                            <MenuItem key={p} value={p}>
+                                                {p}
                                             </MenuItem>
                                         ))}
                                     </TextField>
@@ -290,116 +444,127 @@ function FileCreatePage() {
 
                                 {/* Initial Noting */}
                                 <Grid item xs={12}>
+                                    <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                                        Initial Noting
+                                    </Typography>
                                     <TextField
                                         fullWidth
                                         multiline
                                         rows={6}
-                                        label="Initial Noting"
+                                        placeholder="Enter initial noting for this file... (Required for submission)"
                                         name="initialNoting"
                                         value={formData.initialNoting}
                                         onChange={handleChange}
                                         error={!!errors.initialNoting}
-                                        helperText={errors.initialNoting || 'Add initial notes or remarks for this file'}
-                                        placeholder="Enter initial noting content..."
+                                        helperText={errors.initialNoting}
                                     />
+                                </Grid>
+
+                                {/* Documents */}
+                                <Grid item xs={12}>
+                                    <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                                        Attachments
+                                    </Typography>
+                                    <Box sx={{
+                                        border: '2px dashed',
+                                        borderColor: 'divider',
+                                        borderRadius: 2,
+                                        p: 2,
+                                        textAlign: 'center'
+                                    }}>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            hidden
+                                            id="file-upload"
+                                            onChange={handleFileUpload}
+                                        />
+                                        <label htmlFor="file-upload">
+                                            <Button
+                                                component="span"
+                                                variant="outlined"
+                                                startIcon={<AttachFileIcon />}
+                                            >
+                                                Add Documents
+                                            </Button>
+                                        </label>
+                                        <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
+                                            Supported: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (Max 10MB each)
+                                        </Typography>
+                                    </Box>
+
+                                    {documents.length > 0 && (
+                                        <List dense sx={{ mt: 2 }}>
+                                            {documents.map((doc) => (
+                                                <ListItem key={doc.id}>
+                                                    <ListItemIcon>
+                                                        <FileIcon />
+                                                    </ListItemIcon>
+                                                    <ListItemText
+                                                        primary={doc.name}
+                                                        secondary={`${(doc.size / 1024).toFixed(2)} KB`}
+                                                    />
+                                                    <ListItemSecondaryAction>
+                                                        <IconButton
+                                                            edge="end"
+                                                            onClick={() => handleRemoveDocument(doc.id)}
+                                                        >
+                                                            <DeleteIcon />
+                                                        </IconButton>
+                                                    </ListItemSecondaryAction>
+                                                </ListItem>
+                                            ))}
+                                        </List>
+                                    )}
                                 </Grid>
                             </Grid>
                         </CardContent>
                     </Card>
                 </Grid>
 
-                {/* Sidebar */}
+                {/* Sidebar - Workflow Preview */}
                 <Grid item xs={12} lg={4}>
-                    {/* Documents */}
-                    <Card sx={{ mb: 3 }}>
+                    <Card sx={{ position: 'sticky', top: 20 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight={600} gutterBottom>
-                                Documents
+                                🔄 Workflow Preview
                             </Typography>
                             <Divider sx={{ mb: 2 }} />
+                            
+                            {renderWorkflowPreview()}
 
-                            <input
-                                type="file"
-                                id="file-upload"
-                                multiple
-                                style={{ display: 'none' }}
-                                onChange={handleFileUpload}
-                            />
-                            <label htmlFor="file-upload">
-                                <Button
-                                    fullWidth
-                                    variant="outlined"
-                                    component="span"
-                                    startIcon={<AttachFileIcon />}
-                                    sx={{ mb: 2 }}
-                                >
-                                    Attach Documents
-                                </Button>
-                            </label>
+                            <Divider sx={{ my: 2 }} />
 
-                            {documents.length === 0 ? (
-                                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                                    No documents attached
-                                </Typography>
-                            ) : (
-                                <List dense>
-                                    {documents.map((doc) => (
-                                        <ListItem key={doc.id}>
-                                            <ListItemIcon>
-                                                <FileIcon color="primary" />
-                                            </ListItemIcon>
-                                            <ListItemText
-                                                primary={doc.name}
-                                                secondary={`${(doc.size / 1024).toFixed(1)} KB`}
-                                            />
-                                            <ListItemSecondaryAction>
-                                                <IconButton
-                                                    edge="end"
-                                                    size="small"
-                                                    onClick={() => handleRemoveDocument(doc.id)}
-                                                >
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
-                                            </ListItemSecondaryAction>
-                                        </ListItem>
-                                    ))}
-                                </List>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Actions */}
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight={600} gutterBottom>
-                                Actions
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-
+                            {/* Action Buttons */}
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 <Button
                                     fullWidth
                                     variant="outlined"
+                                    size="large"
                                     startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
                                     onClick={handleSaveDraft}
-                                    disabled={loading}
+                                    disabled={loading || workflowError}
                                 >
                                     Save as Draft
                                 </Button>
                                 <Button
                                     fullWidth
                                     variant="contained"
+                                    size="large"
+                                    color="primary"
                                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
                                     onClick={handleSubmit}
-                                    disabled={loading}
+                                    disabled={loading || workflowError}
                                 >
                                     Submit for Approval
                                 </Button>
                             </Box>
 
-                            <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                                * Submitting will send the file for first level approval
-                            </Typography>
+                            {workflowError && (
+                                <Alert severity="warning" sx={{ mt: 2 }}>
+                                    Cannot submit without a valid workflow.
+                                </Alert>
+                            )}
                         </CardContent>
                     </Card>
                 </Grid>

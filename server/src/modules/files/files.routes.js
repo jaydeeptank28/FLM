@@ -10,6 +10,7 @@ router.use(authMiddleware);
 // File listing and search
 router.get('/search', filesController.search);
 router.get('/counts', filesController.getFolderCounts);
+router.get('/workflow-preview', filesController.getWorkflowPreview);
 router.get('/folder/:folder', filesController.getByFolder);
 
 // File CRUD

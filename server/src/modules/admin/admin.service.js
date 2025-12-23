@@ -1,22 +1,229 @@
-// Admin Service - Workflow templates and system management
+// Admin Service - FLM Production with AUTO-DEFAULT Logic
+// Implements SAP-grade workflow management rules
+// DEFAULT IS SYSTEM-CONTROLLED, NOT ADMIN-CONTROLLED
+
 const { AppError } = require('../../middleware/errorHandler');
+const { getRoleAuthority, ROLE_LABELS } = require('../../config/constants');
 
 class AdminService {
     constructor(db) {
         this.db = db;
     }
 
-    // Workflow Templates
+    // ═══════════════════════════════════════════════════════════════
+    // AUTO-DEFAULT LOGIC (SYSTEM-CONTROLLED)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * AUTO-DETERMINE if workflow should be marked as default
+     * Based ONLY on scope - Admin never controls this
+     * 
+     * Rules:
+     * - Department + FileType selected → NOT default (specific/highest priority)
+     * - Only Department selected → DEPARTMENT DEFAULT (one per dept)
+     * - Neither selected → GLOBAL DEFAULT (only one allowed)
+     */
+    deriveIsDefault(departmentId, fileType) {
+        // If both department and file type are specified → NOT default (specific workflow)
+        if (departmentId && fileType) {
+            return false;
+        }
+        
+        // If only department (no file type) → Department Default
+        // If neither (no department, no file type) → Global Default
+        // These are automatically "default" for their scope
+        return true;
+    }
+
+    /**
+     * Get human-readable scope description
+     */
+    getScopeDescription(departmentId, fileType, deptName = null) {
+        if (departmentId && fileType) {
+            return `${deptName || 'Department'} + ${fileType}`;
+        } else if (departmentId && !fileType) {
+            return `${deptName || 'Department'} Default`;
+        } else if (!departmentId && fileType) {
+            return `${fileType} (Any Department)`;
+        } else {
+            return 'Global Default';
+        }
+    }
+
+    /**
+     * Determine workflow type for UI display
+     */
+    getWorkflowType(departmentId, fileType) {
+        if (departmentId && fileType) {
+            return 'SPECIFIC';  // Highest priority - specific scope
+        } else if (departmentId && !fileType) {
+            return 'DEPARTMENT_DEFAULT';  // Default for this department
+        } else if (!departmentId && fileType) {
+            return 'FILETYPE_DEFAULT';  // Default for this file type
+        } else {
+            return 'GLOBAL_DEFAULT';  // Fallback for everything
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // VALIDATION HELPERS
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * RULE: ONE WORKFLOW PER SCOPE
+     * For (department, file_type) combination, only ONE active workflow allowed
+     */
+    async validateUniqueScope(departmentId, fileType, excludeId = null) {
+        let query = this.db('workflow_templates')
+            .where({ is_active: true });
+
+        if (departmentId) {
+            query = query.where('department_id', departmentId);
+        } else {
+            query = query.whereNull('department_id');
+        }
+
+        if (fileType) {
+            query = query.where('file_type', fileType);
+        } else {
+            query = query.whereNull('file_type');
+        }
+
+        if (excludeId) {
+            query = query.whereNot('id', excludeId);
+        }
+
+        const existing = await query.first();
+
+        if (existing) {
+            const dept = departmentId 
+                ? await this.db('departments').where({ id: departmentId }).first()
+                : null;
+            const scope = this.getScopeDescription(departmentId, fileType, dept?.name);
+
+            throw new AppError(
+                `A workflow already exists for scope: ${scope}. ` +
+                `Existing workflow: "${existing.name}". ` +
+                `Only ONE active workflow per scope is allowed.`,
+                400
+            );
+        }
+    }
+
+    /**
+     * RULE: WORKFLOW COMPLETENESS VALIDATION
+     */
+    async validateWorkflowCompleteness(levels, departmentId, isActive = true) {
+        if (!isActive) return;
+        
+        if (!levels || levels.length === 0) {
+            throw new AppError(
+                'Workflow must have at least one approval level.',
+                400
+            );
+        }
+
+        const errors = [];
+
+        for (let i = 0; i < levels.length; i++) {
+            const level = levels[i];
+            const levelNum = i + 1;
+            const role = level.role || level.roleRequired;
+
+            if (!role) {
+                errors.push(`Level ${levelNum}: No role assigned.`);
+                continue;
+            }
+
+            // If department specific, check if role has users
+            if (departmentId) {
+                const userCount = await this.db('user_department_roles')
+                    .where({ department_id: departmentId, role: role })
+                    .count('id as count')
+                    .first();
+
+                if (parseInt(userCount.count) === 0) {
+                    const roleLabel = ROLE_LABELS[role] || role;
+                    const dept = await this.db('departments').where({ id: departmentId }).first();
+                    errors.push(
+                        `Level ${levelNum} (${roleLabel}): No user assigned for this role in ${dept?.name || 'department'}.`
+                    );
+                }
+            }
+        }
+
+        if (errors.length > 0) {
+            throw new AppError(
+                `Workflow cannot be activated:\n${errors.join('\n')}`,
+                400
+            );
+        }
+    }
+
+    /**
+     * RULE: PROTECTED DEFAULT WORKFLOWS
+     * Default workflows cannot be deleted or deactivated
+     */
+    validateDefaultProtection(template, action) {
+        const workflowType = this.getWorkflowType(template.department_id, template.file_type);
+        
+        if (workflowType === 'GLOBAL_DEFAULT' || workflowType === 'DEPARTMENT_DEFAULT') {
+            if (action === 'DELETE') {
+                throw new AppError(
+                    `Cannot delete "${template.name}": This is a ${workflowType.replace('_', ' ')}. ` +
+                    `Default workflows are system-protected. ` +
+                    `You may edit it or create a more specific workflow.`,
+                    400
+                );
+            }
+            if (action === 'DEACTIVATE') {
+                throw new AppError(
+                    `Cannot deactivate "${template.name}": This is a ${workflowType.replace('_', ' ')}. ` +
+                    `Default workflows must remain active to ensure file routing. ` +
+                    `You may edit it or create a more specific workflow to override it.`,
+                    400
+                );
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // WORKFLOW TEMPLATE CRUD
+    // ═══════════════════════════════════════════════════════════════
+
     async getAllWorkflowTemplates() {
         const templates = await this.db('workflow_templates')
             .select('workflow_templates.*', 'departments.code as department_code', 'departments.name as department_name')
             .leftJoin('departments', 'departments.id', 'workflow_templates.department_id')
-            .orderBy('workflow_templates.name');
+            .orderBy([
+                { column: 'workflow_templates.is_active', order: 'desc' },
+                { column: 'workflow_templates.is_default', order: 'desc' },
+                { column: 'workflow_templates.name', order: 'asc' }
+            ]);
 
         for (const template of templates) {
             template.levels = await this.db('workflow_template_levels')
                 .where({ template_id: template.id })
                 .orderBy('level');
+            
+            // Add workflow type for UI
+            template.workflow_type = this.getWorkflowType(template.department_id, template.file_type);
+            template.scope_description = this.getScopeDescription(
+                template.department_id, 
+                template.file_type, 
+                template.department_name
+            );
+            
+            // Add user count for each level if department specific
+            if (template.department_id) {
+                for (const level of template.levels) {
+                    const userCount = await this.db('user_department_roles')
+                        .where({ department_id: template.department_id, role: level.role })
+                        .count('id as count')
+                        .first();
+                    level.userCount = parseInt(userCount.count);
+                }
+            }
         }
 
         return templates;
@@ -37,24 +244,62 @@ class AdminService {
             .where({ template_id: template.id })
             .orderBy('level');
 
+        template.workflow_type = this.getWorkflowType(template.department_id, template.file_type);
+        template.scope_description = this.getScopeDescription(
+            template.department_id, 
+            template.file_type, 
+            template.department_name
+        );
+
+        if (template.department_id) {
+            for (const level of template.levels) {
+                const userCount = await this.db('user_department_roles')
+                    .where({ department_id: template.department_id, role: level.role })
+                    .count('id as count')
+                    .first();
+                level.userCount = parseInt(userCount.count);
+            }
+        }
+
         return template;
     }
 
     async createWorkflowTemplate(data) {
-        const { name, description, departmentId, isDefault, maxLevels, levels } = data;
+        // IMPORTANT: Ignore any incoming isDefault - we derive it automatically
+        const { name, description, departmentId, fileType, maxLevels, levels, isActive = true } = data;
+
+        // AUTO-DERIVE is_default based on scope (ADMIN CANNOT CONTROL THIS)
+        const isDefault = this.deriveIsDefault(departmentId, fileType);
+        const workflowType = this.getWorkflowType(departmentId, fileType);
+
+        // ═══════════════════════════════════════════════════════════
+        // STRICT VALIDATIONS
+        // ═══════════════════════════════════════════════════════════
+        
+        // Validate unique scope
+        if (isActive) {
+            await this.validateUniqueScope(departmentId, fileType);
+        }
+
+        // Validate completeness
+        await this.validateWorkflowCompleteness(levels, departmentId, isActive);
+
+        // ═══════════════════════════════════════════════════════════
+        // CREATE WORKFLOW
+        // ═══════════════════════════════════════════════════════════
 
         const trx = await this.db.transaction();
 
         try {
             const insertData = {
                 name,
-                is_default: isDefault || false,
-                is_active: true
+                is_default: isDefault,  // AUTO-DERIVED, not from payload
+                is_active: isActive
             };
             
-            // Only add optional fields if provided
             if (description) insertData.description = description;
             if (departmentId) insertData.department_id = departmentId;
+            if (fileType) insertData.file_type = fileType;
             if (maxLevels) insertData.max_levels = maxLevels;
             
             const [template] = await trx('workflow_templates')
@@ -62,17 +307,31 @@ class AdminService {
                 .returning('*');
 
             if (levels && levels.length > 0) {
-                const levelRecords = levels.map((level, index) => ({
-                    template_id: template.id,
-                    level: level.level || index + 1,
-                    role: level.role || level.roleRequired,
-                    description: level.description || null
-                }));
+                const levelRecords = levels.map((level, index) => {
+                    const role = level.role || level.roleRequired;
+                    return {
+                        template_id: template.id,
+                        level: level.level || index + 1,
+                        role: role,
+                        authority_level: getRoleAuthority(role),
+                        description: level.description || null
+                    };
+                });
                 await trx('workflow_template_levels').insert(levelRecords);
             }
 
             await trx.commit();
-            return this.getWorkflowTemplateById(template.id);
+            
+            // Return with additional info
+            const result = await this.getWorkflowTemplateById(template.id);
+            result._autoDefaultInfo = {
+                wasAutoDefault: isDefault,
+                reason: isDefault 
+                    ? `Auto-classified as ${workflowType} based on scope`
+                    : 'Specific workflow (not default)'
+            };
+            
+            return result;
         } catch (error) {
             await trx.rollback();
             throw error;
@@ -80,35 +339,87 @@ class AdminService {
     }
 
     async updateWorkflowTemplate(id, data) {
-        const { name, description, departmentId, isDefault, isActive, maxLevels, levels } = data;
+        // IMPORTANT: Ignore any incoming isDefault - we derive it automatically
+        const { name, description, departmentId, fileType, isActive, maxLevels, levels } = data;
 
         const template = await this.db('workflow_templates').where({ id }).first();
         if (!template) {
             throw new AppError('Workflow template not found', 404);
         }
 
+        // ═══════════════════════════════════════════════════════════
+        // PROTECTED DEFAULT CHECK
+        // ═══════════════════════════════════════════════════════════
+        
+        // If trying to deactivate a default workflow, block
+        if (isActive === false && template.is_active === true) {
+            this.validateDefaultProtection(template, 'DEACTIVATE');
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // CALCULATE NEW VALUES
+        // ═══════════════════════════════════════════════════════════
+
+        const newDeptId = departmentId !== undefined ? departmentId : template.department_id;
+        const newFileType = fileType !== undefined ? fileType : template.file_type;
+        const newIsActive = isActive !== undefined ? isActive : template.is_active;
+
+        // AUTO-DERIVE is_default based on new scope
+        const newIsDefault = this.deriveIsDefault(newDeptId, newFileType);
+
+        // ═══════════════════════════════════════════════════════════
+        // VALIDATIONS
+        // ═══════════════════════════════════════════════════════════
+
+        // Validate unique scope if activating or changing scope
+        if (newIsActive) {
+            const scopeChanged = newDeptId !== template.department_id || newFileType !== template.file_type;
+            const activating = !template.is_active && newIsActive;
+            
+            if (scopeChanged || activating) {
+                await this.validateUniqueScope(newDeptId, newFileType, id);
+            }
+        }
+
+        // Validate completeness if activating
+        const newLevels = levels || template.levels;
+        if (newIsActive) {
+            await this.validateWorkflowCompleteness(newLevels, newDeptId, true);
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // UPDATE WORKFLOW
+        // ═══════════════════════════════════════════════════════════
+
         const trx = await this.db.transaction();
 
         try {
-            const updates = {};
+            const updates = {
+                is_default: newIsDefault,  // AUTO-DERIVED
+                updated_at: new Date()
+            };
+            
             if (name) updates.name = name;
             if (description !== undefined) updates.description = description;
-            if (departmentId !== undefined) updates.department_id = departmentId;
-            if (isDefault !== undefined) updates.is_default = isDefault;
+            if (departmentId !== undefined) updates.department_id = departmentId || null;
+            if (fileType !== undefined) updates.file_type = fileType || null;
             if (isActive !== undefined) updates.is_active = isActive;
             if (maxLevels !== undefined) updates.max_levels = maxLevels;
-            updates.updated_at = new Date();
 
             await trx('workflow_templates').where({ id }).update(updates);
 
             if (levels) {
                 await trx('workflow_template_levels').where({ template_id: id }).del();
-                const levelRecords = levels.map((level, index) => ({
-                    template_id: id,
-                    level: level.level || index + 1,
-                    role: level.role || level.roleRequired,
-                    description: level.description || null
-                }));
+                const levelRecords = levels.map((level, index) => {
+                    const role = level.role || level.roleRequired;
+                    return {
+                        template_id: id,
+                        level: level.level || index + 1,
+                        role: role,
+                        authority_level: getRoleAuthority(role),
+                        description: level.description || null
+                    };
+                });
                 await trx('workflow_template_levels').insert(levelRecords);
             }
 
@@ -126,20 +437,60 @@ class AdminService {
             throw new AppError('Workflow template not found', 404);
         }
 
-        // Delete levels first (CASCADE should handle this, but be explicit)
+        // PROTECTED DEFAULT CHECK
+        this.validateDefaultProtection(template, 'DELETE');
+
+        // Check if workflow is in use by any files
+        const filesUsingWorkflow = await this.db('files')
+            .where({ workflow_template_id: id })
+            .count('id as count')
+            .first();
+
+        if (parseInt(filesUsingWorkflow.count) > 0) {
+            throw new AppError(
+                `Cannot delete workflow "${template.name}": ${filesUsingWorkflow.count} file(s) are using this workflow. ` +
+                `Existing files continue with their original workflow.`,
+                400
+            );
+        }
+
         await this.db('workflow_template_levels').where({ template_id: id }).del();
         await this.db('workflow_templates').where({ id }).del();
 
         return true;
     }
 
-    // System Audit
+    /**
+     * Toggle workflow active status with validation
+     */
+    async toggleWorkflowActive(id, isActive) {
+        const template = await this.getWorkflowTemplateById(id);
+
+        // Cannot deactivate default workflows
+        if (!isActive) {
+            this.validateDefaultProtection(template, 'DEACTIVATE');
+        }
+
+        if (isActive) {
+            await this.validateUniqueScope(template.department_id, template.file_type, id);
+            await this.validateWorkflowCompleteness(template.levels, template.department_id, true);
+        }
+
+        await this.db('workflow_templates')
+            .where({ id })
+            .update({ is_active: isActive, updated_at: new Date() });
+
+        return this.getWorkflowTemplateById(id);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SYSTEM AUDIT
+    // ═══════════════════════════════════════════════════════════════
+
     async getSystemAuditLog(filters = {}) {
         const { type, userId, fileId, daakId, dateFrom, dateTo, limit = 100 } = filters;
-
         let results = [];
 
-        // Get file audit if requested or no specific type
         if (!type || type === 'file') {
             let fileQuery = this.db('file_audit_trail')
                 .select(
@@ -164,7 +515,6 @@ class AdminService {
             results = [...results, ...fileAudit];
         }
 
-        // Get daak audit if requested or no specific type
         if (!type || type === 'daak') {
             let daakQuery = this.db('daak_audit_trail')
                 .select(
@@ -189,19 +539,21 @@ class AdminService {
             results = [...results, ...daakAudit];
         }
 
-        // Sort combined results by date
         results.sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
-
         return results.slice(0, limit);
     }
 
-    // Dashboard stats
+    // ═══════════════════════════════════════════════════════════════
+    // DASHBOARD STATS
+    // ═══════════════════════════════════════════════════════════════
+
     async getDashboardStats() {
         const [userCount] = await this.db('users').count('id as count');
         const [activeUserCount] = await this.db('users').where({ is_active: true }).count('id as count');
         const [departmentCount] = await this.db('departments').where({ is_active: true }).count('id as count');
         const [fileCount] = await this.db('files').count('id as count');
         const [daakCount] = await this.db('daak').count('id as count');
+        const [workflowCount] = await this.db('workflow_templates').where({ is_active: true }).count('id as count');
 
         const filesByState = await this.db('files')
             .select('current_state')
@@ -219,6 +571,7 @@ class AdminService {
                 active: parseInt(activeUserCount.count)
             },
             departments: parseInt(departmentCount.count),
+            workflows: parseInt(workflowCount.count),
             files: {
                 total: parseInt(fileCount.count),
                 byState: filesByState.reduce((acc, row) => {

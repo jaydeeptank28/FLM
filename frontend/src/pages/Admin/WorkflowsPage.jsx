@@ -54,25 +54,31 @@ function WorkflowsPage() {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        isDefault: false,
+        departmentId: '',
+        fileType: '',
         levels: []
     });
+    const [departments, setDepartments] = useState([]);
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
 
-    // Available roles for dropdown (L1 to L7 hierarchy)
+    // Available roles for dropdown - FLM Standard (values match database)
     const availableRoles = [
-        { value: 'Clerk', label: 'L1: Clerk' },
-        { value: 'Section Officer', label: 'L2: Section Officer' },
-        { value: 'Under Secretary', label: 'L3: Under Secretary' },
-        { value: 'Deputy Secretary', label: 'L4: Deputy Secretary' },
-        { value: 'Joint Secretary', label: 'L5: Joint Secretary' },
-        { value: 'Additional Secretary', label: 'L6: Additional Secretary' },
-        { value: 'Secretary', label: 'L7: Secretary' }
+        { value: 'Clerk', label: 'L1: Clerk', authority: 1 },
+        { value: 'Section_Officer', label: 'L2: Section Officer', authority: 2 },
+        { value: 'Under_Secretary', label: 'L3: Under Secretary', authority: 3 },
+        { value: 'Deputy_Secretary', label: 'L4: Deputy Secretary', authority: 4 },
+        { value: 'Joint_Secretary', label: 'L5: Joint Secretary', authority: 5 },
+        { value: 'Additional_Secretary', label: 'L6: Additional Secretary', authority: 6 },
+        { value: 'Secretary', label: 'L7: Secretary', authority: 7 }
     ];
+
+    // File types for dropdown
+    const fileTypes = ['Budget', 'Policy', 'Correspondence', 'Proposal', 'Report', 'Contract', 'Memo', 'Circular', 'General'];
 
     useEffect(() => {
         loadWorkflows();
+        loadDepartments();
     }, []);
 
     const loadWorkflows = async () => {
@@ -85,6 +91,15 @@ function WorkflowsPage() {
             showError('Failed to load workflows');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadDepartments = async () => {
+        try {
+            const data = await api.getDepartments();
+            setDepartments(data || []);
+        } catch (error) {
+            console.error('Error loading departments:', error);
         }
     };
 
@@ -110,7 +125,8 @@ function WorkflowsPage() {
             setFormData({
                 name: workflow.name,
                 description: workflow.description || '',
-                isDefault: workflow.is_default || false,
+                departmentId: workflow.department_id || '',
+                fileType: workflow.file_type || '',
                 levels: levels.length > 0 ? levels : [{ role: '', description: '' }]
             });
         } else {
@@ -118,7 +134,8 @@ function WorkflowsPage() {
             setFormData({
                 name: '',
                 description: '',
-                isDefault: false,
+                departmentId: '',
+                fileType: '',
                 levels: [{ role: '', description: '' }]
             });
         }
@@ -197,8 +214,10 @@ function WorkflowsPage() {
             const payload = {
                 name: formData.name,
                 description: formData.description,
+                departmentId: formData.departmentId || null,
+                fileType: formData.fileType || null,
                 maxLevels: levels.length,
-                isDefault: formData.isDefault,
+                // NOTE: isDefault is NOT sent - backend derives it automatically from scope
                 levels
             };
 
@@ -212,7 +231,9 @@ function WorkflowsPage() {
             handleCloseDialog();
             loadWorkflows();
         } catch (error) {
-            showError(error.message || 'Failed to save workflow');
+            // Extract detailed error message from API response
+            const errorMsg = error.response?.data?.message || error.message || 'Failed to save workflow';
+            showError(errorMsg);
         } finally {
             setSaving(false);
         }
@@ -276,16 +297,30 @@ function WorkflowsPage() {
                 </Button>
             </Box>
 
-            {/* Info Box - Comprehensive */}
-            <Alert severity="info" sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                    📋 Workflow Templates Guide
+            {/* Info Box - Auto-Default Rules */}
+            <Alert severity="success" sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                    🔒 AUTO-DEFAULT SYSTEM (SAP/eOffice Standard)
                 </Typography>
                 <Typography variant="body2" component="div">
-                    <strong>What is it?</strong> Defines how many approval levels a file needs before completion.<br/>
-                    <strong>Selection Priority:</strong> Department-specific workflow → Default workflow → Any active workflow<br/>
-                    <strong>Role Hierarchy (L1→L7):</strong> Clerk → Section Officer → Under Secretary → Deputy Secretary → Joint Secretary → Additional Secretary → Secretary<br/>
-                    <strong>Note:</strong> Roles are system-defined and cannot be added/modified. Each workflow level requires a role from this hierarchy.
+                    <strong>Default is AUTOMATIC:</strong> You don't select "Default" - the system determines it based on scope.<br/>
+                    <strong>Dept + FileType:</strong> SPECIFIC workflow (highest priority, not default)<br/>
+                    <strong>Dept only:</strong> Becomes DEPARTMENT DEFAULT<br/>
+                    <strong>Neither:</strong> Becomes GLOBAL DEFAULT<br/>
+                    <strong>Protected:</strong> Default workflows cannot be deleted or deactivated.
+                </Typography>
+            </Alert>
+
+            <Alert severity="info" sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                    📋 Workflow Selection Priority (At File Creation)
+                </Typography>
+                <Typography variant="body2" component="div">
+                    <strong>1st:</strong> Department + FileType specific workflow<br/>
+                    <strong>2nd:</strong> Department Default (dept selected, no file type)<br/>
+                    <strong>3rd:</strong> FileType default (file type selected, no dept)<br/>
+                    <strong>4th:</strong> Global Default (no dept, no file type)<br/>
+                    <strong>No Match:</strong> ❌ File submission BLOCKED
                 </Typography>
             </Alert>
 
@@ -323,10 +358,55 @@ function WorkflowsPage() {
                                             {workflow.description || 'No description'}
                                         </Typography>
                                     </Box>
-                                    <Box>
-                                        {workflow.is_default && (
-                                            <Chip label="Default" size="small" color="primary" sx={{ mr: 1 }} />
-                                        )}
+                                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                        {/* Workflow Type Badge */}
+                                        {(() => {
+                                            const hasDept = workflow.department_id || workflow.department_name;
+                                            const hasFileType = workflow.file_type;
+                                            const deptName = workflow.department_name || workflow.department_code || 'Dept';
+                                            
+                                            if (hasDept && hasFileType) {
+                                                // Specific workflow
+                                                return (
+                                                    <Chip 
+                                                        label={`${deptName} + ${workflow.file_type}`}
+                                                        size="small" 
+                                                        color="info"
+                                                        sx={{ fontWeight: 600 }}
+                                                    />
+                                                );
+                                            } else if (hasDept && !hasFileType) {
+                                                // Department Default
+                                                return (
+                                                    <Chip 
+                                                        label={`${deptName} Default`}
+                                                        size="small" 
+                                                        color="primary"
+                                                        sx={{ fontWeight: 600 }}
+                                                    />
+                                                );
+                                            } else if (!hasDept && hasFileType) {
+                                                // FileType Default
+                                                return (
+                                                    <Chip 
+                                                        label={`${workflow.file_type} (All Depts)`}
+                                                        size="small" 
+                                                        color="secondary"
+                                                        sx={{ fontWeight: 600 }}
+                                                    />
+                                                );
+                                            } else {
+                                                // Global Default
+                                                return (
+                                                    <Chip 
+                                                        label="🌐 Global Default"
+                                                        size="small" 
+                                                        color="warning"
+                                                        sx={{ fontWeight: 700 }}
+                                                    />
+                                                );
+                                            }
+                                        })()}
                                         <Chip 
                                             label={`${workflow.max_levels || workflow.level_count || workflow.levels?.length || 0} Levels`} 
                                             size="small" 
@@ -335,38 +415,18 @@ function WorkflowsPage() {
                                     </Box>
                                 </Box>
 
-                                {/* Visual Level Flow */}
-                                <Box sx={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    flexWrap: 'wrap',
-                                    gap: 1,
-                                    mb: 2,
-                                    p: 2,
-                                    bgcolor: 'grey.50',
-                                    borderRadius: 1
-                                }}>
-                                    <Chip label="File Created" size="small" color="default" />
-                                    {(workflow.levels || []).map((level, index) => (
-                                        <React.Fragment key={index}>
-                                            <ArrowIcon color="action" fontSize="small" />
-                                            <Chip 
-                                                label={`L${level.level || index + 1}: ${level.role || level.role_required}`}
-                                                size="small"
-                                                color="primary"
-                                                variant="outlined"
-                                            />
-                                        </React.Fragment>
-                                    ))}
-                                    {(!workflow.levels || workflow.levels.length === 0) && (
-                                        <>
-                                            <ArrowIcon color="action" fontSize="small" />
-                                            <Chip label={`${workflow.max_levels || 3} approval levels`} size="small" color="primary" variant="outlined" />
-                                        </>
-                                    )}
-                                    <ArrowIcon color="action" fontSize="small" />
-                                    <Chip label="✓ Approved" size="small" color="success" />
-                                </Box>
+                                {/* Simple Level List */}
+                                {workflow.levels && workflow.levels.length > 0 && (
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                        <strong>Approval Flow:</strong>{' '}
+                                        {workflow.levels.map((level, index) => (
+                                            <span key={index}>
+                                                {level.role || level.role_required}
+                                                {index < workflow.levels.length - 1 && ' → '}
+                                            </span>
+                                        ))}
+                                    </Typography>
+                                )}
 
                                 <Divider sx={{ my: 2 }} />
 
@@ -482,7 +542,7 @@ function WorkflowsPage() {
                         <Typography variant="subtitle2" fontWeight={600} gutterBottom>
                             Step 1: Basic Information
                         </Typography>
-                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, mb: 4 }}>
+                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, mb: 3 }}>
                             <TextField
                                 fullWidth
                                 label="Workflow Name"
@@ -490,7 +550,7 @@ function WorkflowsPage() {
                                 value={formData.name}
                                 onChange={handleChange}
                                 error={!!errors.name}
-                                helperText={errors.name || 'Example: Three Level Approval'}
+                                helperText={errors.name || 'Example: Finance 3-Level Approval'}
                                 required
                             />
                             <TextField
@@ -503,13 +563,79 @@ function WorkflowsPage() {
                             />
                         </Box>
 
+                        {/* Scope Section */}
+                        <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                            Step 2: Workflow Scope (Optional)
+                        </Typography>
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                            <Typography variant="caption">
+                                <strong>Workflow Selection Priority:</strong> Department+FileType → Department-only → FileType-only → Default
+                            </Typography>
+                        </Alert>
+                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, mb: 2 }}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Department (Optional)"
+                                name="departmentId"
+                                value={formData.departmentId}
+                                onChange={handleChange}
+                                helperText="Apply to specific department"
+                            >
+                                <MenuItem value="">
+                                    <em>All Departments (Global)</em>
+                                </MenuItem>
+                                {departments.map((dept) => (
+                                    <MenuItem key={dept.id} value={dept.id}>
+                                        {dept.name} ({dept.code})
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                            <TextField
+                                select
+                                fullWidth
+                                label="File Type (Optional)"
+                                name="fileType"
+                                value={formData.fileType}
+                                onChange={handleChange}
+                                helperText="Apply to specific file type"
+                            >
+                                <MenuItem value="">
+                                    <em>All File Types</em>
+                                </MenuItem>
+                                {fileTypes.map((type) => (
+                                    <MenuItem key={type} value={type}>
+                                        {type}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        </Box>
+
+                        {/* Auto-Default Info (Read-Only) */}
+                        <Alert severity="success" sx={{ mb: 3 }}>
+                            <Typography variant="caption" component="div">
+                                <strong>🔒 Auto-Classification:</strong>{' '}
+                                {formData.departmentId && formData.fileType ? (
+                                    <span>This will be a <strong>SPECIFIC</strong> workflow (highest priority).</span>
+                                ) : formData.departmentId && !formData.fileType ? (
+                                    <span>This will be a <strong>DEPARTMENT DEFAULT</strong> for the selected department.</span>
+                                ) : !formData.departmentId && formData.fileType ? (
+                                    <span>This will apply to <strong>ALL DEPARTMENTS</strong> for this file type.</span>
+                                ) : (
+                                    <span>This will be the <strong>GLOBAL DEFAULT</strong> workflow (fallback for all files).</span>
+                                )}
+                                <br/>
+                                <em style={{ opacity: 0.8 }}>Default status is determined automatically by system based on scope.</em>
+                            </Typography>
+                        </Alert>
+
                         <Divider sx={{ my: 3 }} />
 
                         {/* Levels Section */}
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                             <Box>
                                 <Typography variant="subtitle2" fontWeight={600}>
-                                    Step 2: Define Approval Levels
+                                    Step 3: Define Approval Levels
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
                                     File will go through each level in order. Add levels from top to bottom.
