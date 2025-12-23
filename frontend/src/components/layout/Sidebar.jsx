@@ -430,7 +430,7 @@ function Sidebar({ open, onClose, onToggle }) {
                         FLM v1.0.0
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                        © 2024 Enterprise Solutions
+                        © 2025 Enterprise Solutions
                     </Typography>
                 </Box>
             )}
