@@ -11,14 +11,12 @@ import {
     Avatar,
     Chip,
     Tooltip,
-    Badge,
     Divider,
     ListItemIcon,
     ListItemText
 } from '@mui/material';
 import {
     Menu as MenuIcon,
-    Notifications as NotificationsIcon,
     AccountCircle,
     Settings as SettingsIcon,
     Logout as LogoutIcon,
@@ -107,15 +105,6 @@ function Header({ open, onMenuClick }) {
                     <Tooltip title="Search">
                         <IconButton color="inherit" onClick={handleSearch}>
                             <SearchIcon />
-                        </IconButton>
-                    </Tooltip>
-
-                    {/* Notifications */}
-                    <Tooltip title="Notifications">
-                        <IconButton color="inherit">
-                            <Badge badgeContent={3} color="error">
-                                <NotificationsIcon />
-                            </Badge>
                         </IconButton>
                     </Tooltip>
 

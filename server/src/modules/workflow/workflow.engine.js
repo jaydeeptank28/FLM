@@ -186,6 +186,7 @@ class WorkflowEngine {
     // Get allowed actions for a user on a file
     async getAllowedActions(file, userId) {
         const isCreator = file.created_by === userId;
+        const isAdmin = await this.isUserAdmin(userId, file.department_id);
 
         // Get user's role in this department
         const userRole = await this.db('user_department_roles')
@@ -211,13 +212,30 @@ class WorkflowEngine {
         for (const action of allowedByState) {
             if (action === WORKFLOW_ACTIONS.SUBMIT || action === WORKFLOW_ACTIONS.RESUBMIT ||
                 action === WORKFLOW_ACTIONS.SAVE_DRAFT) {
+                // Creator actions
                 if (isCreator) allowed.push(action);
+            } else if (action === WORKFLOW_ACTIONS.ARCHIVE) {
+                // Archive allowed for: file creator OR Admin
+                if (isCreator || isAdmin) allowed.push(action);
             } else {
+                // Other approval actions require role for current level
                 if (hasRoleForLevel) allowed.push(action);
             }
         }
 
         return allowed;
+    }
+
+    // Helper to check if user is admin
+    async isUserAdmin(userId, departmentId) {
+        const userRole = await this.db('user_department_roles')
+            .where({
+                user_id: userId,
+                department_id: departmentId,
+                role: 'Admin'
+            })
+            .first();
+        return !!userRole;
     }
 }
 

@@ -60,14 +60,15 @@ function WorkflowsPage() {
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
 
-    // Available roles for dropdown
+    // Available roles for dropdown (L1 to L7 hierarchy)
     const availableRoles = [
-        { value: 'Section Officer', label: 'Section Officer' },
-        { value: 'Under Secretary', label: 'Under Secretary' },
-        { value: 'Deputy Secretary', label: 'Deputy Secretary' },
-        { value: 'Joint Secretary', label: 'Joint Secretary' },
-        { value: 'Additional Secretary', label: 'Additional Secretary' },
-        { value: 'Secretary', label: 'Secretary' }
+        { value: 'Clerk', label: 'L1: Clerk' },
+        { value: 'Section Officer', label: 'L2: Section Officer' },
+        { value: 'Under Secretary', label: 'L3: Under Secretary' },
+        { value: 'Deputy Secretary', label: 'L4: Deputy Secretary' },
+        { value: 'Joint Secretary', label: 'L5: Joint Secretary' },
+        { value: 'Additional Secretary', label: 'L6: Additional Secretary' },
+        { value: 'Secretary', label: 'L7: Secretary' }
     ];
 
     useEffect(() => {
@@ -275,11 +276,16 @@ function WorkflowsPage() {
                 </Button>
             </Box>
 
-            {/* Info Box */}
+            {/* Info Box - Comprehensive */}
             <Alert severity="info" sx={{ mb: 3 }}>
-                <Typography variant="body2">
-                    <strong>What is a Workflow Template?</strong> When you create a file, it goes through each level for approval. 
-                    Here you can define how many levels a file needs to be approved and which role will approve at each level.
+                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                    📋 Workflow Templates Guide
+                </Typography>
+                <Typography variant="body2" component="div">
+                    <strong>What is it?</strong> Defines how many approval levels a file needs before completion.<br/>
+                    <strong>Selection Priority:</strong> Department-specific workflow → Default workflow → Any active workflow<br/>
+                    <strong>Role Hierarchy (L1→L7):</strong> Clerk → Section Officer → Under Secretary → Deputy Secretary → Joint Secretary → Additional Secretary → Secretary<br/>
+                    <strong>Note:</strong> Roles are system-defined and cannot be added/modified. Each workflow level requires a role from this hierarchy.
                 </Typography>
             </Alert>
 

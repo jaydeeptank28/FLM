@@ -262,7 +262,7 @@ function FileDetailPage() {
             {/* Action Buttons */}
             {allowedActions.length > 0 && !isReadOnly && (
                 <Card sx={{ mb: 3, p: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 1 }}>
                         <Typography variant="subtitle2" color="text.secondary">
                             Available Actions:
                         </Typography>
@@ -282,6 +282,14 @@ function FileDetailPage() {
                             );
                         })}
                     </Box>
+                    {/* Context-aware help text */}
+                    <Typography variant="caption" color="text.secondary">
+                        {currentState === FILE_STATES.DRAFT && '💡 Submit this file to start the approval workflow.'}
+                        {currentState === FILE_STATES.IN_REVIEW && `💡 Level ${file.current_workflow_level || file.current_level || 1} of ${file.max_workflow_levels || file.max_levels || 3}. Approve to move forward, Return to send back to creator.`}
+                        {currentState === FILE_STATES.RETURNED && '💡 File was returned for corrections. Make changes and Resubmit.'}
+                        {currentState === FILE_STATES.APPROVED && '💡 File is fully approved! Click Archive to complete the workflow and store permanently.'}
+                        {currentState === FILE_STATES.CABINET && '💡 File is on hold. Click Resume to continue the approval process.'}
+                    </Typography>
                 </Card>
             )}
 

@@ -197,7 +197,22 @@ function FileCreatePage() {
                                 {/* File Number Preview */}
                                 <Grid item xs={12}>
                                     <Alert severity="info" icon={<FileIcon />}>
-                                        <strong>File Number:</strong> Will be auto-generated on save
+                                        <strong>File Number:</strong> Will be auto-generated on save (Format: DEPT/YYYY/NNNN)
+                                    </Alert>
+                                </Grid>
+
+                                {/* Workflow Info */}
+                                <Grid item xs={12}>
+                                    <Alert severity="success" sx={{ mb: 0 }}>
+                                        <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                                            📋 How File Creation Works:
+                                        </Typography>
+                                        <Typography variant="body2" component="div">
+                                            <strong>1. Who can create files?</strong> Any user with a role in a department can create files.<br/>
+                                            <strong>2. Which workflow applies?</strong> System automatically picks: Department-specific → Default → Any active workflow.<br/>
+                                            <strong>3. File Flow:</strong> DRAFT → Submit → Level 1 → Level 2 → ... → APPROVED → ARCHIVE<br/>
+                                            <strong>4. After submission:</strong> File goes to approvers based on workflow levels.
+                                        </Typography>
                                     </Alert>
                                 </Grid>
 
