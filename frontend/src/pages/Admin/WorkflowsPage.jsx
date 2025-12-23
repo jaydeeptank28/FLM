@@ -415,18 +415,38 @@ function WorkflowsPage() {
                                     </Box>
                                 </Box>
 
-                                {/* Simple Level List */}
-                                {workflow.levels && workflow.levels.length > 0 && (
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                        <strong>Approval Flow:</strong>{' '}
-                                        {workflow.levels.map((level, index) => (
-                                            <span key={index}>
-                                                {level.role || level.role_required}
-                                                {index < workflow.levels.length - 1 && ' → '}
-                                            </span>
-                                        ))}
-                                    </Typography>
-                                )}
+                                {/* Visual Level Flow */}
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    flexWrap: 'wrap',
+                                    gap: 1,
+                                    mb: 2,
+                                    p: 2,
+                                    bgcolor: 'grey.50',
+                                    borderRadius: 1
+                                }}>
+                                    <Chip label="File Created" size="small" color="default" />
+                                    {(workflow.levels || []).map((level, index) => (
+                                        <React.Fragment key={index}>
+                                            <ArrowIcon color="action" fontSize="small" />
+                                            <Chip 
+                                                label={`L${level.level || index + 1}: ${level.role || level.role_required}`}
+                                                size="small"
+                                                color="primary"
+                                                variant="outlined"
+                                            />
+                                        </React.Fragment>
+                                    ))}
+                                    {(!workflow.levels || workflow.levels.length === 0) && (
+                                        <>
+                                            <ArrowIcon color="action" fontSize="small" />
+                                            <Chip label={`${workflow.max_levels || 3} approval levels`} size="small" color="primary" variant="outlined" />
+                                        </>
+                                    )}
+                                    <ArrowIcon color="action" fontSize="small" />
+                                    <Chip label="✓ Approved" size="small" color="success" />
+                                </Box>
 
                                 <Divider sx={{ my: 2 }} />
 
