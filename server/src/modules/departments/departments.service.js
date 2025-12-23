@@ -91,6 +91,15 @@ class DepartmentsService {
             throw new AppError('Department not found', 404);
         }
 
+        // Check if department has admin users - prevent deletion
+        const adminUsers = await this.db('user_department_roles')
+            .where({ department_id: id, role: 'Admin' })
+            .first();
+        
+        if (adminUsers) {
+            throw new AppError('Cannot delete department with admin users', 400);
+        }
+
         // Delete related data
         await this.db('user_department_roles').where({ department_id: id }).del();
         await this.db('workflow_templates').where({ department_id: id }).update({ department_id: null });
