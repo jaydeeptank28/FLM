@@ -52,7 +52,16 @@ function UsersPage() {
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
 
-    const roles = ['Clerk', 'Assistant', 'Section Officer', 'Under Secretary', 'Deputy Secretary', 'Joint Secretary', 'Additional Secretary', 'Secretary', 'Admin'];
+    const roles = [
+        { value: 'Clerk', label: 'Clerk' },
+        { value: 'Section Officer', label: 'Section Officer' },
+        { value: 'Under Secretary', label: 'Under Secretary' },
+        { value: 'Deputy Secretary', label: 'Deputy Secretary' },
+        { value: 'Joint Secretary', label: 'Joint Secretary' },
+        { value: 'Additional Secretary', label: 'Additional Secretary' },
+        { value: 'Secretary', label: 'Secretary' },
+        { value: 'Admin', label: 'Admin' }
+    ];
 
     useEffect(() => {
         loadData();
@@ -75,6 +84,30 @@ function UsersPage() {
         }
     };
 
+    // Helper to get user's department name from departmentRoles array
+    const getUserDepartment = (user) => {
+        if (user.departmentRoles && user.departmentRoles.length > 0) {
+            return user.departmentRoles[0].departmentName || user.departmentRoles[0].departmentCode || '-';
+        }
+        return user.department_name || '-';
+    };
+
+    // Helper to get user's role from departmentRoles array
+    const getUserRole = (user) => {
+        if (user.departmentRoles && user.departmentRoles.length > 0) {
+            return user.departmentRoles[0].role || 'User';
+        }
+        return user.role || 'User';
+    };
+
+    // Helper to get user's department ID from departmentRoles array
+    const getUserDepartmentId = (user) => {
+        if (user.departmentRoles && user.departmentRoles.length > 0) {
+            return user.departmentRoles[0].departmentId || '';
+        }
+        return user.department_id || '';
+    };
+
     const handleOpenDialog = (user = null) => {
         if (user) {
             setEditingUser(user);
@@ -82,8 +115,8 @@ function UsersPage() {
                 name: user.name,
                 email: user.email,
                 password: '',
-                departmentId: user.department_id || '',
-                role: user.role || 'Clerk'
+                departmentId: getUserDepartmentId(user),
+                role: getUserRole(user)
             });
         } else {
             setEditingUser(null);
@@ -134,11 +167,22 @@ function UsersPage() {
 
         setSaving(true);
         try {
+            // Convert flat departmentId/role to departmentRoles array format
+            const userData = {
+                name: formData.name,
+                email: formData.email,
+                password: formData.password || undefined,
+                departmentRoles: [{
+                    departmentId: formData.departmentId,
+                    role: formData.role
+                }]
+            };
+
             if (editingUser) {
-                await api.updateUser(editingUser.id, formData);
+                await api.updateUser(editingUser.id, userData);
                 showSuccess('User updated successfully');
             } else {
-                await api.createUser(formData);
+                await api.createUser(userData);
                 showSuccess('User created successfully');
             }
             handleCloseDialog();
@@ -232,12 +276,12 @@ function UsersPage() {
                                                 <Typography fontWeight={500}>{user.name}</Typography>
                                             </TableCell>
                                             <TableCell>{user.email}</TableCell>
-                                            <TableCell>{user.department_name || '-'}</TableCell>
+                                            <TableCell>{getUserDepartment(user)}</TableCell>
                                             <TableCell>
                                                 <Chip 
-                                                    label={user.role || 'User'} 
+                                                    label={getUserRole(user)} 
                                                     size="small" 
-                                                    color={user.role === 'Admin' ? 'error' : 'default'}
+                                                    color={getUserRole(user) === 'Admin' ? 'error' : 'default'}
                                                 />
                                             </TableCell>
                                             <TableCell>
@@ -332,8 +376,8 @@ function UsersPage() {
                             onChange={handleChange}
                         >
                             {roles.map((role) => (
-                                <MenuItem key={role} value={role}>
-                                    {role}
+                                <MenuItem key={role.value} value={role.value}>
+                                    {role.label}
                                 </MenuItem>
                             ))}
                         </TextField>
