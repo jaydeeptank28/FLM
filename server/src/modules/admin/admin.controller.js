@@ -17,10 +17,10 @@ const getWorkflowTemplateById = asyncHandler(async (req, res) => {
 });
 
 const createWorkflowTemplate = asyncHandler(async (req, res) => {
-    const { name, fileTypes, levels } = req.body;
+    const { name, levels } = req.body;
 
-    if (!name || !fileTypes || !levels || levels.length === 0) {
-        return ApiResponse.badRequest(res, 'Name, file types, and at least one level are required');
+    if (!name || !levels || levels.length === 0) {
+        return ApiResponse.badRequest(res, 'Name and at least one level are required');
     }
 
     const adminService = new AdminService(req.db);

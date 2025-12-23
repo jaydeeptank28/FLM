@@ -110,20 +110,15 @@ function WorkflowsPage() {
                 name: workflow.name,
                 description: workflow.description || '',
                 isDefault: workflow.is_default || false,
-                levels: levels.length > 0 ? levels : [{ role: 'Section Officer', description: '' }]
+                levels: levels.length > 0 ? levels : [{ role: '', description: '' }]
             });
         } else {
             setEditingWorkflow(null);
-            // Default: 3 level workflow
             setFormData({
                 name: '',
                 description: '',
                 isDefault: false,
-                levels: [
-                    { role: 'Section Officer', description: 'First level review' },
-                    { role: 'Under Secretary', description: 'Second level review' },
-                    { role: 'Deputy Secretary', description: 'Final approval' }
-                ]
+                levels: [{ role: '', description: '' }]
             });
         }
         setErrors({});

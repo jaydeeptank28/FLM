@@ -41,27 +41,32 @@ class AdminService {
     }
 
     async createWorkflowTemplate(data) {
-        const { name, departmentId, fileTypes, isDefault, levels } = data;
+        const { name, description, departmentId, isDefault, maxLevels, levels } = data;
 
         const trx = await this.db.transaction();
 
         try {
+            const insertData = {
+                name,
+                is_default: isDefault || false,
+                is_active: true
+            };
+            
+            // Only add optional fields if provided
+            if (description) insertData.description = description;
+            if (departmentId) insertData.department_id = departmentId;
+            if (maxLevels) insertData.max_levels = maxLevels;
+            
             const [template] = await trx('workflow_templates')
-                .insert({
-                    name,
-                    department_id: departmentId,
-                    file_types: fileTypes,
-                    is_default: isDefault || false,
-                    is_active: true
-                })
+                .insert(insertData)
                 .returning('*');
 
             if (levels && levels.length > 0) {
                 const levelRecords = levels.map((level, index) => ({
                     template_id: template.id,
-                    level: index + 1,
-                    role: level.role,
-                    description: level.description
+                    level: level.level || index + 1,
+                    role: level.role || level.roleRequired,
+                    description: level.description || null
                 }));
                 await trx('workflow_template_levels').insert(levelRecords);
             }
@@ -75,7 +80,7 @@ class AdminService {
     }
 
     async updateWorkflowTemplate(id, data) {
-        const { name, departmentId, fileTypes, isDefault, isActive, levels } = data;
+        const { name, description, departmentId, isDefault, isActive, maxLevels, levels } = data;
 
         const template = await this.db('workflow_templates').where({ id }).first();
         if (!template) {
@@ -87,10 +92,11 @@ class AdminService {
         try {
             const updates = {};
             if (name) updates.name = name;
+            if (description !== undefined) updates.description = description;
             if (departmentId !== undefined) updates.department_id = departmentId;
-            if (fileTypes) updates.file_types = fileTypes;
             if (isDefault !== undefined) updates.is_default = isDefault;
             if (isActive !== undefined) updates.is_active = isActive;
+            if (maxLevels !== undefined) updates.max_levels = maxLevels;
             updates.updated_at = new Date();
 
             await trx('workflow_templates').where({ id }).update(updates);
@@ -99,9 +105,9 @@ class AdminService {
                 await trx('workflow_template_levels').where({ template_id: id }).del();
                 const levelRecords = levels.map((level, index) => ({
                     template_id: id,
-                    level: index + 1,
-                    role: level.role,
-                    description: level.description
+                    level: level.level || index + 1,
+                    role: level.role || level.roleRequired,
+                    description: level.description || null
                 }));
                 await trx('workflow_template_levels').insert(levelRecords);
             }

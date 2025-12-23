@@ -66,40 +66,45 @@ exports.seed = async function(knex) {
         {
             id: generateUUID(),
             name: 'HR Standard 3-Level',
+            description: 'Standard 3-level approval for HR department',
             department_id: hrDept.id,
-            file_types: ['Budget', 'Policy', 'Proposal'],
+            max_levels: 3,
             is_default: false,
             is_active: true
         },
         {
             id: generateUUID(),
             name: 'Finance 4-Level',
+            description: 'Extended 4-level approval for financial matters',
             department_id: finDept.id,
-            file_types: ['Budget', 'Contract', 'Proposal'],
+            max_levels: 4,
             is_default: false,
             is_active: true
         },
         {
             id: generateUUID(),
             name: 'Administration Quick 2-Level',
+            description: 'Quick 2-level approval for routine admin tasks',
             department_id: admDept.id,
-            file_types: ['Memo', 'Correspondence', 'Circular', 'General'],
+            max_levels: 2,
             is_default: false,
             is_active: true
         },
         {
             id: generateUUID(),
             name: 'Engineering Project',
+            description: 'Technical review and approval for engineering projects',
             department_id: engDept.id,
-            file_types: ['Proposal', 'Report', 'Contract'],
+            max_levels: 3,
             is_default: false,
             is_active: true
         },
         {
             id: generateUUID(),
             name: 'Default Single Level',
+            description: 'Simple single-level approval for general files',
             department_id: null,
-            file_types: ['General'],
+            max_levels: 1,
             is_default: true,
             is_active: true
         }

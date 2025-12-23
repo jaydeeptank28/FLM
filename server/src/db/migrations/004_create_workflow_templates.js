@@ -3,8 +3,9 @@ exports.up = async function(knex) {
     await knex.schema.createTable('workflow_templates', (table) => {
         table.uuid('id').primary().defaultTo(knex.fn.uuid());
         table.string('name', 255).notNullable();
+        table.text('description').nullable();
         table.uuid('department_id').nullable().references('id').inTable('departments').onDelete('SET NULL');
-        table.specificType('file_types', 'text[]').notNullable();
+        table.integer('max_levels').defaultTo(3);
         table.boolean('is_default').defaultTo(false);
         table.boolean('is_active').defaultTo(true);
         table.timestamp('created_at').defaultTo(knex.fn.now());
