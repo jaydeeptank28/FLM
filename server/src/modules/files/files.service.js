@@ -608,14 +608,13 @@ class FilesService {
             throw new AppError('Archived files are read-only', 403);
         }
 
-        const [noting] = await this.db('file_notings')
+        await this.db('file_notings')
             .insert({
                 file_id: fileId,
                 content,
                 type,
                 added_by: userId
-            })
-            .returning('*');
+            });
 
         // Record audit trail
         await this.db('file_audit_trail').insert({
@@ -625,7 +624,8 @@ class FilesService {
             details: `${type} added to file`
         });
 
-        return noting;
+        // Return the full updated file (not just the noting)
+        return this.getById(fileId);
     }
 
     // Add document
@@ -676,7 +676,8 @@ class FilesService {
 
             await trx.commit();
 
-            return document;
+            // Return the full updated file (not just the document)
+            return this.getById(fileId);
         } catch (error) {
             await trx.rollback();
             throw error;
@@ -736,14 +737,15 @@ class FilesService {
             await this.db('file_tracks')
                 .where({ file_id: fileId, user_id: userId })
                 .del();
-            return { tracked: false };
         } else {
             await this.db('file_tracks').insert({
                 file_id: fileId,
                 user_id: userId
             });
-            return { tracked: true };
         }
+
+        // Return the full updated file (not just status)
+        return this.getById(fileId);
     }
 
     // Get allowed actions for user

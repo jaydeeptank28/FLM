@@ -195,19 +195,6 @@ function LoginPage() {
                             {loading ? 'Signing In...' : 'Sign In'}
                         </Button>
                     </form>
-
-                    {/* Initial Credentials Notice */}
-                    <Box sx={{ mt: 4, p: 2, bgcolor: 'info.lighter', borderRadius: 2, border: '1px solid', borderColor: 'info.light' }}>
-                        <Typography variant="caption" color="info.dark" display="block">
-                            <strong>Initial Admin Credentials:</strong>
-                        </Typography>
-                        <Typography variant="caption" color="info.dark" display="block" sx={{ fontFamily: 'monospace' }}>
-                            Email: admin@flm.local
-                        </Typography>
-                        <Typography variant="caption" color="info.dark" display="block" sx={{ fontFamily: 'monospace' }}>
-                            Password: admin123
-                        </Typography>
-                    </Box>
                 </CardContent>
             </Card>
         </Box>

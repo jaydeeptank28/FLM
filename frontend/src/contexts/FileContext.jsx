@@ -167,6 +167,17 @@ export function FileProvider({ children }) {
             setError(null);
             const updatedFile = await api.toggleTrackFile(fileId);
             setCurrentFile(updatedFile);
+
+            // Auto-refresh folder counts after track toggle (for sidebar "Tracked" count)
+            if (currentDepartmentId) {
+                try {
+                    const counts = await api.getFolderCounts(currentDepartmentId);
+                    setFolderCounts(counts);
+                } catch (err) {
+                    console.error('Error refreshing folder counts:', err);
+                }
+            }
+
             return { success: true, file: updatedFile };
         } catch (err) {
             setError(err.message);
@@ -174,7 +185,7 @@ export function FileProvider({ children }) {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [currentDepartmentId]);
 
     // Search files
     const searchFiles = useCallback(async (params) => {

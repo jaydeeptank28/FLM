@@ -25,6 +25,9 @@ const getById = asyncHandler(async (req, res) => {
     const allowedActions = await filesService.getAllowedActions(req.params.id, req.user.id);
     file.allowedActions = allowedActions;
 
+    // Add isTracked boolean for current user
+    file.isTracked = (file.trackedBy || []).includes(req.user.id);
+
     return ApiResponse.success(res, file);
 });
 
@@ -62,6 +65,11 @@ const addNoting = asyncHandler(async (req, res) => {
 
     const filesService = new FilesService(req.db);
     const file = await filesService.addNoting(req.params.id, req.user.id, content, type);
+
+    // Add isTracked and allowedActions like getById does
+    file.isTracked = (file.trackedBy || []).includes(req.user.id);
+    file.allowedActions = await filesService.getAllowedActions(req.params.id, req.user.id);
+
     return ApiResponse.success(res, file, 'Noting added successfully');
 });
 
@@ -76,6 +84,11 @@ const addDocument = asyncHandler(async (req, res) => {
     const file = await filesService.addDocument(req.params.id, req.user.id, {
         name, type, size, storagePath
     });
+
+    // Add isTracked and allowedActions like getById does
+    file.isTracked = (file.trackedBy || []).includes(req.user.id);
+    file.allowedActions = await filesService.getAllowedActions(req.params.id, req.user.id);
+
     return ApiResponse.success(res, file, 'Document added successfully');
 });
 
@@ -115,6 +128,11 @@ const shareFile = asyncHandler(async (req, res) => {
 const toggleTrack = asyncHandler(async (req, res) => {
     const filesService = new FilesService(req.db);
     const file = await filesService.toggleTrack(req.params.id, req.user.id);
+
+    // Add isTracked and allowedActions like getById does
+    file.isTracked = (file.trackedBy || []).includes(req.user.id);
+    file.allowedActions = await filesService.getAllowedActions(req.params.id, req.user.id);
+
     return ApiResponse.success(res, file, 'Track toggled');
 });
 

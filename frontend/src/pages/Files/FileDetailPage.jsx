@@ -46,7 +46,8 @@ import {
     Edit as EditIcon,
     Download as DownloadIcon,
     History as HistoryIcon,
-    Person as PersonIcon
+    Person as PersonIcon,
+    Bookmark as BookmarkIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { useFiles } from '../../contexts/FileContext';
@@ -242,14 +243,20 @@ function FileDetailPage() {
                     </Box>
                 </Box>
 
-                {/* Track Button */}
-                <Button
-                    variant={isTracking ? 'contained' : 'outlined'}
-                    size="small"
+                {/* Pin/Unpin Toggle */}
+                <Chip
+                    icon={isTracking ? <BookmarkIcon /> : undefined}
+                    label={isTracking ? 'Tracked' : 'Track'}
                     onClick={handleToggleTrack}
-                >
-                    {isTracking ? 'Tracking' : 'Track'}
-                </Button>
+                    color={isTracking ? 'warning' : 'default'}
+                    variant={isTracking ? 'filled' : 'outlined'}
+                    sx={{ 
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        px: 1
+                    }}
+                />
             </Box>
 
             {/* Read-only Alert */}
