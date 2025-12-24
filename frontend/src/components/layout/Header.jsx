@@ -21,7 +21,8 @@ import {
     Settings as SettingsIcon,
     Logout as LogoutIcon,
     SwapHoriz as SwapHorizIcon,
-    Search as SearchIcon
+    Search as SearchIcon,
+    Check as CheckIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -30,7 +31,7 @@ const DRAWER_WIDTH = 260;
 
 function Header({ open, onMenuClick }) {
     const navigate = useNavigate();
-    const { currentUser, currentDepartment, currentRole, logout, getUserDepartments } = useAuth();
+    const { currentUser, currentDepartment, currentDepartmentId, currentRole, logout, getUserDepartments, selectDepartment } = useAuth();
     const [anchorEl, setAnchorEl] = useState(null);
     const [deptAnchorEl, setDeptAnchorEl] = useState(null);
 
@@ -56,9 +57,11 @@ function Header({ open, onMenuClick }) {
         navigate('/login');
     };
 
-    const handleSwitchDepartment = () => {
-        handleProfileMenuClose();
-        navigate('/select-department');
+    const handleSwitchDepartment = (deptId) => {
+        selectDepartment(deptId);
+        handleDeptMenuClose();
+        // Reload page to refresh all data for new department
+        window.location.reload();
     };
 
     const handleSearch = () => {
@@ -108,12 +111,12 @@ function Header({ open, onMenuClick }) {
                         </IconButton>
                     </Tooltip>
 
-                    {/* Department Chip */}
+                    {/* Department Dropdown - Always clickable if multiple departments */}
                     {currentDepartment && (
                         <Chip
                             label={currentDepartment}
                             color="primary"
-                            variant="outlined"
+                            variant={canSwitchDepartment ? 'filled' : 'outlined'}
                             size="small"
                             onClick={canSwitchDepartment ? handleDeptMenuOpen : undefined}
                             sx={{ cursor: canSwitchDepartment ? 'pointer' : 'default' }}
@@ -158,14 +161,6 @@ function Header({ open, onMenuClick }) {
                         </Typography>
                     </Box>
                     <Divider />
-                    {canSwitchDepartment && (
-                        <MenuItem onClick={handleSwitchDepartment}>
-                            <ListItemIcon>
-                                <SwapHorizIcon fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText>Switch Department</ListItemText>
-                        </MenuItem>
-                    )}
                     <MenuItem onClick={handleProfileMenuClose}>
                         <ListItemIcon>
                             <SettingsIcon fontSize="small" />
@@ -181,24 +176,40 @@ function Header({ open, onMenuClick }) {
                     </MenuItem>
                 </Menu>
 
-                {/* Department Switch Menu */}
+                {/* Department Switch Dropdown */}
                 <Menu
                     anchorEl={deptAnchorEl}
                     open={Boolean(deptAnchorEl)}
                     onClose={handleDeptMenuClose}
                     transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                     anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                    PaperProps={{
+                        sx: { minWidth: 180, mt: 1 }
+                    }}
                 >
+                    <Box sx={{ px: 2, py: 1 }}>
+                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            Switch Department
+                        </Typography>
+                    </Box>
+                    <Divider />
                     {userDepartments.map((dept) => (
                         <MenuItem
-                            key={dept}
-                            selected={dept === currentDepartment}
-                            onClick={() => {
-                                handleDeptMenuClose();
-                                navigate('/select-department');
-                            }}
+                            key={dept.id}
+                            selected={dept.id === currentDepartmentId}
+                            onClick={() => handleSwitchDepartment(dept.id)}
                         >
-                            {dept}
+                            <ListItemIcon>
+                                {dept.id === currentDepartmentId && <CheckIcon fontSize="small" color="primary" />}
+                            </ListItemIcon>
+                            <ListItemText>
+                                <Typography variant="body2" fontWeight={dept.id === currentDepartmentId ? 600 : 400}>
+                                    {dept.name || dept.code}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    {dept.role}
+                                </Typography>
+                            </ListItemText>
                         </MenuItem>
                     ))}
                 </Menu>
@@ -208,3 +219,4 @@ function Header({ open, onMenuClick }) {
 }
 
 export default Header;
+

@@ -42,9 +42,9 @@ function MainLayout() {
 
     // Redirect to login if not authenticated
     if (!isAuthenticated) {
-        if (needsDepartmentSelection) {
-            return <Navigate to="/select-department" replace />;
-        }
+        // if (needsDepartmentSelection) {
+        //     return <Navigate to="/select-department" replace />;
+        // }
         return <Navigate to="/login" replace />;
     }
 

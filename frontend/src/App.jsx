@@ -42,7 +42,7 @@ function App() {
                 <Routes>
                   {/* Public Routes */}
                   <Route path="/login" element={<LoginPage />} />
-                  <Route path="/select-department" element={<SelectDepartmentPage />} />
+                  <Route path="/select-department" element={<Navigate to="/dashboard" replace />} />
 
                   {/* Protected Routes */}
                   <Route path="/" element={<MainLayout />}>

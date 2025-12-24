@@ -35,8 +35,6 @@ function LoginPage() {
     useEffect(() => {
         if (isAuthenticated) {
             navigate('/dashboard');
-        } else if (needsDepartmentSelection) {
-            navigate('/select-department');
         }
     }, [isAuthenticated, needsDepartmentSelection, navigate]);
 
@@ -58,12 +56,7 @@ function LoginPage() {
         const result = await login(email, password);
 
         if (result.success) {
-            // Check if user needs to select department
-            if (result.user.departmentRoles?.length > 1) {
-                navigate('/select-department');
-            } else {
-                navigate('/dashboard');
-            }
+            navigate('/dashboard');
         } else {
             setError(result.error || 'Login failed. Please try again.');
         }

@@ -32,8 +32,8 @@ export function AuthProvider({ children }) {
                             setCurrentDepartment(deptRole.departmentCode);
                             setCurrentRole(deptRole.role);
                         }
-                    } else if (user.departmentRoles?.length === 1) {
-                        // Auto-select single department
+                    } else if (user.departmentRoles?.length >= 1) {
+                        // Auto-select first department for all users (fallback if no stored ID)
                         const dr = user.departmentRoles[0];
                         setCurrentDepartmentId(dr.departmentId);
                         setCurrentDepartment(dr.departmentCode);
@@ -77,8 +77,8 @@ export function AuthProvider({ children }) {
             const depts = await api.getDepartments();
             setDepartments(depts);
 
-            // Auto-select if single department
-            if (result.user.departmentRoles?.length === 1) {
+            // Auto-select first department for all users (no department selection page)
+            if (result.user.departmentRoles?.length >= 1) {
                 const dr = result.user.departmentRoles[0];
                 setCurrentDepartmentId(dr.departmentId);
                 setCurrentDepartment(dr.departmentCode);

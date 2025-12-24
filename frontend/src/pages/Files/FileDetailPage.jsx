@@ -243,20 +243,16 @@ function FileDetailPage() {
                     </Box>
                 </Box>
 
-                {/* Pin/Unpin Toggle */}
-                <Chip
-                    icon={isTracking ? <BookmarkIcon /> : undefined}
-                    label={isTracking ? 'Tracked' : 'Track'}
+                {/* Track Button */}
+                <Button
+                    variant={isTracking ? 'contained' : 'outlined'}
+                    color={isTracking ? 'warning' : 'inherit'}
+                    size="small"
                     onClick={handleToggleTrack}
-                    color={isTracking ? 'warning' : 'default'}
-                    variant={isTracking ? 'filled' : 'outlined'}
-                    sx={{ 
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
-                        px: 1
-                    }}
-                />
+                    startIcon={<BookmarkIcon />}
+                >
+                    {isTracking ? 'Tracked' : 'Track'}
+                </Button>
             </Box>
 
             {/* Read-only Alert */}
