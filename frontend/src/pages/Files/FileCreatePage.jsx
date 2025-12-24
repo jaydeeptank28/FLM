@@ -23,7 +23,8 @@ import {
     Paper,
     Stepper,
     Step,
-    StepLabel
+    StepLabel,
+    Tooltip
 } from '@mui/material';
 import {
     Save as SaveIcon,
@@ -315,21 +316,48 @@ function FileCreatePage() {
                         </StepLabel>
                     </Step>
                     
-                    {workflowPreview.levels?.map((level, index) => (
-                        <Step key={level.level} expanded active>
-                            <StepLabel icon={<Typography variant="caption" sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: 'grey.200', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>{index + 1}</Typography>}>
-                                <Typography variant="body2" fontWeight={600}>
-                                    {(ROLE_LABELS && ROLE_LABELS[level.role_required]) || level.role_required?.replace(/_/g, ' ')}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" display="block">
-                                    {level.approvers && level.approvers.length > 0 
-                                        ? `Approvers: ${level.approvers.map(u => u.name).join(', ')}`
-                                        : `Approver: Any ${ROLE_LABELS[level.role_required] || level.role_required}`
+                    {workflowPreview.levels?.map((level, index) => {
+                        const isSkipped = level.willSkip;
+                        
+                        return (
+                            <Step key={level.level} expanded active>
+                                <StepLabel 
+                                    icon={
+                                        isSkipped ? (
+                                            <CheckIcon color="success" sx={{ fontSize: 20 }} />
+                                        ) : (
+                                            <Typography variant="caption" sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: 'grey.200', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
+                                                {index + 1}
+                                            </Typography>
+                                        )
                                     }
-                                </Typography>
-                            </StepLabel>
-                        </Step>
-                    ))}
+                                >
+                                    <Typography variant="body2" fontWeight={600} color={isSkipped ? 'success.main' : 'text.primary'}>
+                                        {(ROLE_LABELS && ROLE_LABELS[level.role_required]) || level.role_required?.replace(/_/g, ' ')}
+                                        {isSkipped && ' (Auto-Skipped)'}
+                                    </Typography>
+                                    
+                                    <Box>
+                                        {isSkipped ? (
+                                            <Tooltip title={level.skipReason || "Your authority level is higher than this requirement"}>
+                                                <Typography variant="caption" color="success.main" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'help' }}>
+                                                    <SkipIcon sx={{ fontSize: 16 }} />
+                                                    Skipped - Higher Authority
+                                                </Typography>
+                                            </Tooltip>
+                                        ) : (
+                                            <Typography variant="caption" color="text.secondary" display="block">
+                                                {level.approvers && level.approvers.length > 0 
+                                                    ? `Approvers: ${level.approvers.map(u => u.name).join(', ')}`
+                                                    : `Approver: Any ${ROLE_LABELS[level.role_required] || level.role_required}`
+                                                }
+                                            </Typography>
+                                        )}
+                                    </Box>
+                                </StepLabel>
+                            </Step>
+                        );
+                    })}
 
                     <Step expanded active>
                         <StepLabel icon={<CheckIcon color="success" sx={{ fontSize: 20 }} />}>
