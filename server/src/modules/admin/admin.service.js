@@ -102,9 +102,7 @@ class AdminService {
             const scope = this.getScopeDescription(departmentId, fileType, dept?.name);
 
             throw new AppError(
-                `A workflow already exists for scope: ${scope}. ` +
-                `Existing workflow: "${existing.name}". ` +
-                `Only ONE active workflow per scope is allowed.`,
+                `${existing.name} (${scope}) workflow already exists.`,
                 400
             );
         }
