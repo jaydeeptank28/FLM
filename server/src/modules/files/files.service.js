@@ -216,19 +216,21 @@ class FilesService {
                 const targetDeptId = template.department_id || departmentId;
                 
                 let approvers = [];
-                if (targetDeptId && level.role_required) {
+                // Use level.role as role_required is likely undefined in DB result
+                if (targetDeptId && level.role) {
                     approvers = await this.db('users')
                         .select('users.name', 'users.email')
                         .join('user_department_roles', 'users.id', 'user_department_roles.user_id')
                         .where({
                             'user_department_roles.department_id': targetDeptId,
-                            'user_department_roles.role': level.role_required
+                            'user_department_roles.role': level.role
                         })
-                        .limit(5); // Limit to top 5 to avoid UI clutter
+                        .limit(5); 
                 }
 
                 return {
                     ...level,
+                    role_required: level.role, // Ensure frontend gets 'role_required' property
                     approvers, // Attach the list of names
                     willSkip,
                     skipReason: willSkip 
