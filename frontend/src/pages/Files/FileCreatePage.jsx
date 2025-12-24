@@ -429,7 +429,6 @@ function FileCreatePage() {
                                         InputProps={{
                                             readOnly: true,
                                         }}
-                                        helperText="Files are created in your assigned department"
                                         disabled={!currentDepartment}
                                     />
                                 </Grid>
@@ -444,7 +443,6 @@ function FileCreatePage() {
                                         value={formData.fileType}
                                         onChange={handleChange}
                                         error={!!errors.fileType}
-                                        helperText={errors.fileType || "Affects workflow selection"}
                                     >
                                         {fileTypes.map((type) => (
                                             <MenuItem key={type} value={type}>

@@ -297,33 +297,6 @@ function WorkflowsPage() {
                 </Button>
             </Box>
 
-            {/* Info Box - Auto-Default Rules */}
-            <Alert severity="success" sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-                    🔒 AUTO-DEFAULT SYSTEM (SAP/eOffice Standard)
-                </Typography>
-                <Typography variant="body2" component="div">
-                    <strong>Default is AUTOMATIC:</strong> You don't select "Default" - the system determines it based on scope.<br/>
-                    <strong>Dept + FileType:</strong> SPECIFIC workflow (highest priority, not default)<br/>
-                    <strong>Dept only:</strong> Becomes DEPARTMENT DEFAULT<br/>
-                    <strong>Neither:</strong> Becomes GLOBAL DEFAULT<br/>
-                    <strong>Protected:</strong> Default workflows cannot be deleted or deactivated.
-                </Typography>
-            </Alert>
-
-            <Alert severity="info" sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                    📋 Workflow Selection Priority (At File Creation)
-                </Typography>
-                <Typography variant="body2" component="div">
-                    <strong>1st:</strong> Department + FileType specific workflow<br/>
-                    <strong>2nd:</strong> Department Default (dept selected, no file type)<br/>
-                    <strong>3rd:</strong> FileType default (file type selected, no dept)<br/>
-                    <strong>4th:</strong> Global Default (no dept, no file type)<br/>
-                    <strong>No Match:</strong> ❌ File submission BLOCKED
-                </Typography>
-            </Alert>
-
             {/* Workflows Cards */}
             {workflows.length === 0 ? (
                 <Card>
