@@ -77,7 +77,7 @@ function Sidebar({ open, onClose, onToggle }) {
             }
         };
         loadCounts();
-    }, [getFolderCounts]);
+    }, [getFolderCounts, location.pathname]);
 
     // Load pending daak count
     useEffect(() => {
@@ -218,7 +218,7 @@ function Sidebar({ open, onClose, onToggle }) {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <FileIcon sx={{ color: 'primary.main', fontSize: 32 }} />
                             <Typography variant="h6" fontWeight={700} color="primary.main">
-                                FLM
+                                ezFLM
                             </Typography>
                         </Box>
                         <Tooltip title="Collapse">
@@ -427,7 +427,7 @@ function Sidebar({ open, onClose, onToggle }) {
             {open && (
                 <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
                     <Typography variant="caption" color="text.secondary" display="block">
-                        FLM v1.0.0
+                        ezFLM v1.0.0
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                         © 2025 Enterprise Solutions

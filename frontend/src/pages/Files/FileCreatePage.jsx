@@ -292,86 +292,32 @@ function FileCreatePage() {
             );
         }
 
-        const skippedCount = workflowPreview.levels?.filter(l => l.willSkip).length || 0;
-
-        // Map scope reason enum to display info
-        const getScopeReasonDisplay = (scopeReason) => {
-            switch (scopeReason) {
-                case 'DEPARTMENT_FILETYPE_MATCH':
-                    return { label: 'Dept + FileType Match', color: 'success', icon: '🎯' };
-                case 'DEPARTMENT_DEFAULT':
-                    return { label: 'Department Default', color: 'primary', icon: '🏢' };
-                case 'GLOBAL_DEFAULT':
-                    return { label: 'Global Default', color: 'secondary', icon: '🌐' };
-                default:
-                    return { label: 'System Selected', color: 'default', icon: '⚙️' };
-            }
-        };
-
-        const scopeDisplay = getScopeReasonDisplay(workflowPreview.scopeReason);
-
         return (
             <Paper sx={{ p: 2, bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-                    <Typography variant="subtitle2" fontWeight={700} color="success.dark">
-                        ✅ Workflow: {workflowPreview.name}
-                    </Typography>
-                    <Chip 
-                        label={`${scopeDisplay.icon} ${scopeDisplay.label}`} 
-                        size="small" 
-                        color={scopeDisplay.color}
-                        sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600 }}
-                    />
-                </Box>
+                {/* Workflow Name */}
+                <Typography variant="subtitle1" fontWeight={700} color="success.dark" gutterBottom>
+                    ✅ {workflowPreview.name}
+                </Typography>
                 
-                <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                    {workflowPreview.selectionReason}
+                {/* Approval Levels */}
+                <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                    Approval Levels:
                 </Typography>
 
-                {skippedCount > 0 && (
-                    <Alert severity="info" sx={{ my: 1, py: 0.5 }}>
-                        <Typography variant="caption">
-                            <strong>Skip Logic Active:</strong> {skippedCount} level(s) will be skipped because your role ({ROLE_LABELS[workflowPreview.creatorRole] || workflowPreview.creatorRole}) has equal/higher authority.
-                        </Typography>
-                    </Alert>
-                )}
-
-                <Divider sx={{ my: 1.5 }} />
-                
-                <Typography variant="caption" fontWeight={600} color="text.secondary">
-                    APPROVAL LEVELS:
-                </Typography>
-
-                <Box sx={{ mt: 1 }}>
-                    {workflowPreview.levels?.map((level, index) => (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    {workflowPreview.levels?.map((level) => (
                         <Box 
                             key={level.level} 
                             sx={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 
-                                gap: 1, 
-                                py: 0.5,
-                                opacity: level.willSkip ? 0.6 : 1
+                                gap: 1,
+                                pl: 1
                             }}
                         >
-                            {level.willSkip ? (
-                                <SkipIcon fontSize="small" color="info" />
-                            ) : level.level === workflowPreview.firstActiveLevel ? (
-                                <CheckIcon fontSize="small" color="warning" />
-                            ) : (
-                                <PendingIcon fontSize="small" color="disabled" />
-                            )}
-                            
-                            <Typography variant="body2" sx={{ textDecoration: level.willSkip ? 'line-through' : 'none' }}>
-                                L{level.level}: {ROLE_LABELS[level.role_required] || level.role_required}
+                            <Typography variant="body2" color="text.primary">
+                                Level {level.level}: <strong>{ROLE_LABELS[level.role_required] || level.role_required}</strong>
                             </Typography>
-
-                            {level.willSkip && (
-                                <Chip label="SKIP" size="small" color="info" variant="outlined" sx={{ height: 18, fontSize: '0.65rem' }} />
-                            )}
-                            {level.level === workflowPreview.firstActiveLevel && !level.willSkip && (
-                                <Chip label="START" size="small" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />
-                            )}
                         </Box>
                     ))}
                 </Box>
@@ -379,7 +325,7 @@ function FileCreatePage() {
                 <Divider sx={{ my: 1.5 }} />
                 
                 <Typography variant="caption" color="text.secondary">
-                    After all levels → APPROVED → Archive (read-only)
+                    Total: {workflowPreview.totalLevels || workflowPreview.levels?.length || 0} approval level(s)
                 </Typography>
             </Paper>
         );
@@ -416,7 +362,7 @@ function FileCreatePage() {
                                 {/* File Number Preview */}
                                 <Grid item xs={12}>
                                     <Alert severity="info" icon={<FileIcon />}>
-                                        <strong>File Number:</strong> Will be auto-generated on save (Format: FLM/DEPT/YYYY/NNNN)
+                                        <strong>File Number:</strong> Will be auto-generated on save (Format: ezFLM/DEPT/YYYY/NNNN)
                                     </Alert>
                                 </Grid>
 

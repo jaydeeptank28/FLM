@@ -318,139 +318,85 @@ function WorkflowsPage() {
                     </CardContent>
                 </Card>
             ) : (
-                <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
-                    {workflows.map((workflow) => (
-                        <Card key={workflow.id} sx={{ position: 'relative' }}>
-                            <CardContent>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                                    <Box>
-                                        <Typography variant="h6" fontWeight={600}>
-                                            {workflow.name}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            {workflow.description || 'No description'}
-                                        </Typography>
-                                    </Box>
-                                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                                        {/* Workflow Type Badge */}
-                                        {(() => {
-                                            const hasDept = workflow.department_id || workflow.department_name;
-                                            const hasFileType = workflow.file_type;
-                                            const deptName = workflow.department_name || workflow.department_code || 'Dept';
-                                            
-                                            if (hasDept && hasFileType) {
-                                                // Specific workflow
-                                                return (
-                                                    <Chip 
-                                                        label={`${deptName} + ${workflow.file_type}`}
-                                                        size="small" 
-                                                        color="info"
-                                                        sx={{ fontWeight: 600 }}
-                                                    />
-                                                );
-                                            } else if (hasDept && !hasFileType) {
-                                                // Department Default
-                                                return (
-                                                    <Chip 
-                                                        label={`${deptName} Default`}
-                                                        size="small" 
-                                                        color="primary"
-                                                        sx={{ fontWeight: 600 }}
-                                                    />
-                                                );
-                                            } else if (!hasDept && hasFileType) {
-                                                // FileType Default
-                                                return (
-                                                    <Chip 
-                                                        label={`${workflow.file_type} (All Depts)`}
-                                                        size="small" 
-                                                        color="secondary"
-                                                        sx={{ fontWeight: 600 }}
-                                                    />
-                                                );
-                                            } else {
-                                                // Global Default
-                                                return (
-                                                    <Chip 
-                                                        label="🌐 Global Default"
-                                                        size="small" 
-                                                        color="warning"
-                                                        sx={{ fontWeight: 700 }}
-                                                    />
-                                                );
-                                            }
-                                        })()}
-                                        <Chip 
-                                            label={`${workflow.max_levels || workflow.level_count || workflow.levels?.length || 0} Levels`} 
-                                            size="small" 
-                                            variant="outlined"
-                                        />
-                                    </Box>
-                                </Box>
-
-                                {/* Visual Level Flow */}
-                                <Box sx={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    flexWrap: 'wrap',
-                                    gap: 1,
-                                    mb: 2,
-                                    p: 2,
-                                    bgcolor: 'grey.50',
-                                    borderRadius: 1
-                                }}>
-                                    <Chip label="File Created" size="small" color="default" />
-                                    {(workflow.levels || []).map((level, index) => (
-                                        <React.Fragment key={index}>
-                                            <ArrowIcon color="action" fontSize="small" />
+                <Card>
+                    <TableContainer>
+                        <Table>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell><strong>Workflow Name</strong></TableCell>
+                                    <TableCell><strong>Department</strong></TableCell>
+                                    <TableCell><strong>File Type</strong></TableCell>
+                                    <TableCell><strong>Levels</strong></TableCell>
+                                    <TableCell><strong>Status</strong></TableCell>
+                                    <TableCell align="right"><strong>Actions</strong></TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {workflows.map((workflow) => (
+                                    <TableRow key={workflow.id} hover>
+                                        <TableCell>
+                                            <Typography fontWeight={600}>{workflow.name}</Typography>
+                                            {workflow.description && (
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {workflow.description}
+                                                </Typography>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {workflow.department_name || workflow.department_code || (
+                                                <Chip label="All Depts" size="small" variant="outlined" />
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {workflow.file_type || (
+                                                <Chip label="All Types" size="small" variant="outlined" />
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
                                             <Chip 
-                                                label={`L${level.level || index + 1}: ${level.role || level.role_required}`}
-                                                size="small"
+                                                label={`${workflow.max_levels || workflow.levels?.length || 0} Levels`} 
+                                                size="small" 
                                                 color="primary"
                                                 variant="outlined"
                                             />
-                                        </React.Fragment>
-                                    ))}
-                                    {(!workflow.levels || workflow.levels.length === 0) && (
-                                        <>
-                                            <ArrowIcon color="action" fontSize="small" />
-                                            <Chip label={`${workflow.max_levels || 3} approval levels`} size="small" color="primary" variant="outlined" />
-                                        </>
-                                    )}
-                                    <ArrowIcon color="action" fontSize="small" />
-                                    <Chip label="✓ Approved" size="small" color="success" />
-                                </Box>
-
-                                <Divider sx={{ my: 2 }} />
-
-                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                                    <Button 
-                                        size="small" 
-                                        startIcon={<ViewIcon />}
-                                        onClick={() => handleViewWorkflow(workflow)}
-                                    >
-                                        View
-                                    </Button>
-                                    <Button 
-                                        size="small" 
-                                        startIcon={<EditIcon />}
-                                        onClick={() => handleOpenDialog(workflow)}
-                                    >
-                                        Edit
-                                    </Button>
-                                    <Button 
-                                        size="small" 
-                                        color="error"
-                                        startIcon={<DeleteIcon />}
-                                        onClick={() => handleDelete(workflow.id)}
-                                    >
-                                        Delete
-                                    </Button>
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Chip 
+                                                label={workflow.is_active !== false ? "Active" : "Inactive"} 
+                                                size="small" 
+                                                color={workflow.is_active !== false ? "success" : "default"}
+                                            />
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <IconButton 
+                                                size="small" 
+                                                onClick={() => handleViewWorkflow(workflow)}
+                                                title="View"
+                                            >
+                                                <ViewIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton 
+                                                size="small" 
+                                                onClick={() => handleOpenDialog(workflow)}
+                                                title="Edit"
+                                            >
+                                                <EditIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton 
+                                                size="small" 
+                                                color="error"
+                                                onClick={() => handleDelete(workflow.id)}
+                                                title="Delete"
+                                            >
+                                                <DeleteIcon fontSize="small" />
+                                            </IconButton>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Card>
             )}
 
             {/* View Workflow Dialog */}

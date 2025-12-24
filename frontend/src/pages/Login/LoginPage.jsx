@@ -116,7 +116,7 @@ function LoginPage() {
                             <FileIcon sx={{ fontSize: 36, color: 'white' }} />
                         </Box>
                         <Typography variant="h4" fontWeight={700} color="primary.main">
-                            FLM System
+                            ezFLM System
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                             File Lifecycle Management

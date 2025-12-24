@@ -30,7 +30,7 @@ class FilesService {
             .first();
 
         const nextNumber = (parseInt(count.count) + 1).toString().padStart(4, '0');
-        return `FLM/${prefix}/${year}/${nextNumber}`;
+        return `ezFLM/${prefix}/${year}/${nextNumber}`;
     }
 
 
