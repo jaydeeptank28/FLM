@@ -97,6 +97,30 @@ class ApiService {
         }
     }
 
+    // ============ HTTP HELPER METHODS ============
+    async get(endpoint) {
+        return this.request(endpoint, { method: 'GET' });
+    }
+
+    async post(endpoint, body) {
+        return this.request(endpoint, { method: 'POST', body });
+    }
+
+    async patch(endpoint, body) {
+        return this.request(endpoint, { method: 'PATCH', body });
+    }
+
+    async delete(endpoint) {
+        return this.request(endpoint, { method: 'DELETE' });
+    }
+
+    // ============ WORKFLOW PREVIEW ============
+    async getWorkflowPreview(departmentId, fileType) {
+        const params = new URLSearchParams({ departmentId });
+        if (fileType) params.append('fileType', fileType);
+        return this.request(`/files/workflow-preview?${params}`);
+    }
+
     // ============ AUTH ============
     async login(email, password) {
         const response = await this.request('/auth/login', {

@@ -33,33 +33,77 @@ class FilesService {
         return `FLM/${prefix}/${year}/${nextNumber}`;
     }
 
-    /**
-     * Get workflow template with STRICT priority order:
-     * 1. Department + FileType specific
-     * 2. Department-only
-     * 3. FileType-only (null department)
-     * 4. Default workflow
-     * 5. ERROR if none found
-     */
+
     async getWorkflowTemplate(departmentId, fileType) {
+        const { WORKFLOW_SCOPE_REASONS } = require('../../config/constants');
+        
         let template = null;
         let reason = '';
+        let scopeReason = '';
 
-        // Priority 1: Department + FileType specific
-        template = await this.db('workflow_templates')
-            .where({ 
-                department_id: departmentId, 
-                file_type: fileType,
-                is_active: true 
-            })
-            .first();
-        
-        if (template) {
-            reason = `Selected: Department + FileType specific workflow`;
+        const dept = await this.db('departments').where({ id: departmentId }).first();
+        if (!dept) {
+            throw new AppError(`Department not found: ${departmentId}`, 404);
         }
 
-        // Priority 2: Department-only (no file_type filter)
+        // ═══════════════════════════════════════════════════════════════
+        // PRIORITY 1: Department + FileType specific workflow
+        // ═══════════════════════════════════════════════════════════════
+        if (fileType) {
+            // Check for duplicates at this priority level
+            const duplicates = await this.db('workflow_templates')
+                .where({ 
+                    department_id: departmentId, 
+                    file_type: fileType,
+                    is_active: true 
+                })
+                .count('id as count')
+                .first();
+            
+            if (parseInt(duplicates.count) > 1) {
+                throw new AppError(
+                    `Configuration error: Multiple workflows found for "${dept.name}" + "${fileType}". ` +
+                    `Admin must resolve this before files can be created.`,
+                    400
+                );
+            }
+
+            template = await this.db('workflow_templates')
+                .where({ 
+                    department_id: departmentId, 
+                    file_type: fileType,
+                    is_active: true 
+                })
+                .first();
+            
+            if (template) {
+                reason = `Matched: ${dept.name} + ${fileType} specific workflow`;
+                scopeReason = WORKFLOW_SCOPE_REASONS.DEPARTMENT_FILETYPE_MATCH;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // PRIORITY 2: Department Default (any file type)
+        // ═══════════════════════════════════════════════════════════════
         if (!template) {
+            // Check for duplicates - multiple department defaults
+            const duplicates = await this.db('workflow_templates')
+                .where({ 
+                    department_id: departmentId, 
+                    is_active: true 
+                })
+                .whereNull('file_type')
+                .count('id as count')
+                .first();
+            
+            if (parseInt(duplicates.count) > 1) {
+                throw new AppError(
+                    `Configuration error: Multiple default workflows found for "${dept.name}". ` +
+                    `Admin must keep only one department default workflow.`,
+                    400
+                );
+            }
+
             template = await this.db('workflow_templates')
                 .where({ 
                     department_id: departmentId, 
@@ -69,46 +113,60 @@ class FilesService {
                 .first();
             
             if (template) {
-                reason = `Selected: Department-specific workflow`;
+                reason = `Using ${dept.name} department default workflow (no ${fileType || 'specific'} workflow found)`;
+                scopeReason = WORKFLOW_SCOPE_REASONS.DEPARTMENT_DEFAULT;
             }
         }
 
-        // Priority 3: FileType-only (null department)
+        // ═══════════════════════════════════════════════════════════════
+        // PRIORITY 3: Global Default (system-wide fallback)
+        // ═══════════════════════════════════════════════════════════════
         if (!template) {
+            // Check for multiple global defaults
+            const duplicates = await this.db('workflow_templates')
+                .where({ 
+                    is_default: true, 
+                    is_active: true 
+                })
+                .whereNull('department_id')
+                .count('id as count')
+                .first();
+            
+            if (parseInt(duplicates.count) > 1) {
+                throw new AppError(
+                    `Configuration error: Multiple global default workflows found. ` +
+                    `Admin must designate exactly one global default.`,
+                    400
+                );
+            }
+
             template = await this.db('workflow_templates')
                 .where({ 
-                    file_type: fileType,
+                    is_default: true, 
                     is_active: true 
                 })
                 .whereNull('department_id')
                 .first();
             
             if (template) {
-                reason = `Selected: FileType-specific workflow`;
+                reason = `Using global default workflow (no ${dept.name} specific workflow found)`;
+                scopeReason = WORKFLOW_SCOPE_REASONS.GLOBAL_DEFAULT;
             }
         }
 
-        // Priority 4: Default workflow
+        // ═══════════════════════════════════════════════════════════════
+        // ❌ NO WORKFLOW FOUND - STRICT BLOCK
+        // ═══════════════════════════════════════════════════════════════
         if (!template) {
-            template = await this.db('workflow_templates')
-                .where({ 
-                    is_default: true, 
-                    is_active: true 
-                })
-                .first();
-            
-            if (template) {
-                reason = `Selected: Default system workflow`;
-            }
-        }
-
-        // STRICT: No workflow found - BLOCK with clear error
-        if (!template) {
-            const dept = await this.db('departments').where({ id: departmentId }).first();
             throw new AppError(
-                `No workflow configured for Department "${dept?.name || 'Unknown'}" + File Type "${fileType || 'Any'}". ` +
-                `System checked: (1) Department+FileType specific, (2) Department default, (3) Global default. ` +
-                `Please ask Admin to create a workflow for this combination.`,
+                `NO WORKFLOW CONFIGURED\n\n` +
+                `Department: "${dept.name}"\n` +
+                `File Type: "${fileType || 'Any'}"\n\n` +
+                `System checked (in order):\n` +
+                `  1. ${dept.name} + ${fileType || 'Any'} specific workflow ❌\n` +
+                `  2. ${dept.name} department default workflow ❌\n` +
+                `  3. Global default workflow ❌\n\n` +
+                `File creation is BLOCKED until Admin configures a workflow.`,
                 400
             );
         }
@@ -125,7 +183,12 @@ class FilesService {
             }
         }
 
-        return { ...template, levels, selectionReason: reason };
+        return { 
+            ...template, 
+            levels, 
+            selectionReason: reason,
+            scopeReason: scopeReason  // Enum value for storage
+        };
     }
 
     /**
@@ -166,6 +229,7 @@ class FilesService {
                     name: template.name,
                     description: template.description,
                     selectionReason: template.selectionReason,
+                    scopeReason: template.scopeReason,
                     totalLevels: template.levels.length,
                     levels: levelsWithSkip,
                     firstActiveLevel,
@@ -241,15 +305,16 @@ class FilesService {
                 });
             }
 
-            // Add audit trail
+            // Add audit trail with scope reason for enterprise compliance
             await trx('file_audit_trail').insert({
                 file_id: file.id,
                 action: 'CREATED',
                 performed_by: userId,
-                details: `File created as draft. Workflow: ${template.name}. ${template.selectionReason}`,
+                details: `File created as draft. Workflow: ${template.name}. Scope: ${template.scopeReason}. ${template.selectionReason}`,
                 metadata: JSON.stringify({
                     workflowId: template.id,
                     workflowName: template.name,
+                    scopeReason: template.scopeReason,
                     selectionReason: template.selectionReason,
                     creatorRole: userRole.role,
                     creatorAuthority

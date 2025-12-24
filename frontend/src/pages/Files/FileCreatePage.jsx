@@ -42,11 +42,10 @@ import api from '../../services/api';
 
 function FileCreatePage() {
     const navigate = useNavigate();
-    const { currentDepartment, currentDepartmentId, getAllDepartments } = useAuth();
+    const { currentDepartment, currentDepartmentId, user } = useAuth();
     const { createFile, performWorkflowAction } = useFiles();
     const { showSuccess, showError } = useNotification();
 
-    const departments = getAllDepartments();
     const fileTypes = Object.values(FILE_TYPES);
     const priorities = Object.values(PRIORITIES);
 
@@ -72,6 +71,7 @@ function FileCreatePage() {
     const fetchWorkflowPreview = useCallback(async (deptId, fileType) => {
         if (!deptId) {
             setWorkflowPreview(null);
+            setWorkflowError('No department selected');
             return;
         }
 
@@ -79,43 +79,68 @@ function FileCreatePage() {
         setWorkflowError(null);
 
         try {
-            const params = new URLSearchParams({ departmentId: deptId });
-            if (fileType) params.append('fileType', fileType);
+            // Use the dedicated API method
+            const response = await api.getWorkflowPreview(deptId, fileType);
             
-            const response = await api.get(`/files/workflow-preview?${params}`);
+            // Response format: { success: true, data: { success: true, workflow: {...} } }
+            // or: { success: true, data: { success: false, error: '...' } }
+            const previewData = response?.data || response;
             
-            if (response.data.success && response.data.data.success) {
-                setWorkflowPreview(response.data.data.workflow);
+            console.log('[FileCreatePage] Workflow preview response:', previewData);
+            
+            if (previewData?.success && previewData?.workflow) {
+                setWorkflowPreview(previewData.workflow);
+                setWorkflowError(null);
+            } else if (previewData?.workflow) {
+                // Direct workflow object
+                setWorkflowPreview(previewData.workflow);
+                setWorkflowError(null);
+            } else if (previewData?.success === false) {
+                // Backend returned success: false with error message
+                setWorkflowError(previewData?.error || 'No workflow configured for this department');
+                setWorkflowPreview(null);
             } else {
-                setWorkflowError(response.data.data.error || 'No workflow found');
+                setWorkflowError('No workflow found for this combination');
                 setWorkflowPreview(null);
             }
         } catch (error) {
-            setWorkflowError(error.response?.data?.message || 'Failed to load workflow');
+            console.error('[FileCreatePage] Workflow preview error:', error);
+            const errMsg = error.message || 'Failed to load workflow';
+            setWorkflowError(errMsg);
             setWorkflowPreview(null);
         } finally {
             setWorkflowLoading(false);
         }
     }, []);
 
-    // Fetch workflow when department or file type changes
+    // Auto-fetch workflow on mount and when fileType changes
     useEffect(() => {
-        if (formData.departmentId) {
-            fetchWorkflowPreview(formData.departmentId, formData.fileType);
+        // Debug logging
+        console.log('[FileCreatePage] Department Context:', {
+            currentDepartment,
+            currentDepartmentId,
+            fileType: formData.fileType
+        });
+
+        if (currentDepartmentId) {
+            // Set department info from context
+            setFormData(prev => ({
+                ...prev,
+                department: currentDepartment || '',
+                departmentId: currentDepartmentId
+            }));
+            // Fetch workflow preview
+            fetchWorkflowPreview(currentDepartmentId, formData.fileType);
+        } else {
+            // No department selected - show error
+            setWorkflowError('No department selected. Please login again or select a department.');
+            setWorkflowPreview(null);
         }
-    }, [formData.departmentId, formData.fileType, fetchWorkflowPreview]);
+    }, [currentDepartmentId, currentDepartment, formData.fileType, fetchWorkflowPreview]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-
-        // If department changed, update departmentId
-        if (name === 'department') {
-            const dept = departments.find(d => d.code === value);
-            if (dept) {
-                setFormData(prev => ({ ...prev, department: value, departmentId: dept.id }));
-            }
-        }
 
         // Clear error for this field
         if (errors[name]) {
@@ -141,7 +166,8 @@ function FileCreatePage() {
     const validate = () => {
         const newErrors = {};
 
-        if (!formData.department) newErrors.department = 'Department is required';
+        // Department is auto-set from context
+        if (!currentDepartmentId) newErrors.department = 'You must be assigned to a department to create files';
         if (!formData.fileType) newErrors.fileType = 'File type is required';
         if (!formData.subject.trim()) newErrors.subject = 'Subject is required';
         if (formData.subject.length > 200) newErrors.subject = 'Subject must be less than 200 characters';
@@ -268,11 +294,35 @@ function FileCreatePage() {
 
         const skippedCount = workflowPreview.levels?.filter(l => l.willSkip).length || 0;
 
+        // Map scope reason enum to display info
+        const getScopeReasonDisplay = (scopeReason) => {
+            switch (scopeReason) {
+                case 'DEPARTMENT_FILETYPE_MATCH':
+                    return { label: 'Dept + FileType Match', color: 'success', icon: '🎯' };
+                case 'DEPARTMENT_DEFAULT':
+                    return { label: 'Department Default', color: 'primary', icon: '🏢' };
+                case 'GLOBAL_DEFAULT':
+                    return { label: 'Global Default', color: 'secondary', icon: '🌐' };
+                default:
+                    return { label: 'System Selected', color: 'default', icon: '⚙️' };
+            }
+        };
+
+        const scopeDisplay = getScopeReasonDisplay(workflowPreview.scopeReason);
+
         return (
             <Paper sx={{ p: 2, bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
-                <Typography variant="subtitle2" fontWeight={700} color="success.dark" gutterBottom>
-                    ✅ Workflow: {workflowPreview.name}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+                    <Typography variant="subtitle2" fontWeight={700} color="success.dark">
+                        ✅ Workflow: {workflowPreview.name}
+                    </Typography>
+                    <Chip 
+                        label={`${scopeDisplay.icon} ${scopeDisplay.label}`} 
+                        size="small" 
+                        color={scopeDisplay.color}
+                        sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600 }}
+                    />
+                </Box>
                 
                 <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
                     {workflowPreview.selectionReason}
@@ -370,24 +420,18 @@ function FileCreatePage() {
                                     </Alert>
                                 </Grid>
 
-                                {/* Department */}
+                                {/* Department - READ ONLY (FLM: users create files only in their department) */}
                                 <Grid item xs={12} sm={6}>
                                     <TextField
-                                        select
                                         fullWidth
-                                        label="Department *"
-                                        name="department"
-                                        value={formData.department}
-                                        onChange={handleChange}
-                                        error={!!errors.department}
-                                        helperText={errors.department}
-                                    >
-                                        {departments.map((dept) => (
-                                            <MenuItem key={dept.id} value={dept.code}>
-                                                {dept.name}
-                                            </MenuItem>
-                                        ))}
-                                    </TextField>
+                                        label="Department"
+                                        value={currentDepartment ? `${currentDepartment}` : 'No department assigned'}
+                                        InputProps={{
+                                            readOnly: true,
+                                        }}
+                                        helperText="Files are created in your assigned department"
+                                        disabled={!currentDepartment}
+                                    />
                                 </Grid>
 
                                 {/* File Type */}
