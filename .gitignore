@@ -38,3 +38,10 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+
+app.js
+docs/
+.env.app
+.env.production
+

@@ -12,30 +12,35 @@ const startServer = () => {
     let isHttps = false;
     let keysSource = '';
 
-    // 1. Production Mode: Auto-detect keys in root keys/ folder
-    if (config.nodeEnv === 'production') {
+
+    if (process.env.SSL_KEY_PATH && process.env.SSL_CERT_PATH) {
         try {
-            const keyPath = path.join(__dirname, '..', 'keys', 'key.pem');
-            const certPath = path.join(__dirname, '..', 'keys', 'cert.pem');
+            const keyPath = process.env.SSL_KEY_PATH;
+            const certPath = process.env.SSL_CERT_PATH;
+            const caPath = process.env.SSL_CA_PATH;
 
             if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
                 sslOptions = {
                     key: fs.readFileSync(keyPath),
                     cert: fs.readFileSync(certPath)
                 };
+                if (caPath && fs.existsSync(caPath)) {
+                    sslOptions.ca = fs.readFileSync(caPath);
+                }
+                
                 isHttps = true;
-                keysSource = 'Found in ../keys (Production Auto-detect)';
+                keysSource = 'Using paths from Env (SSL_KEY_PATH)';
             } else {
-                console.warn('SSL Keys not found at ' + keyPath + '. Falling back to HTTP.');
+                console.warn(`⚠️ Live SSL Keys not found at ${keyPath}. Falling back to HTTP.`);
             }
         } catch (error) {
-            console.error('Failed to start HTTPS server (Production):', error);
+            console.error('Failed to start HTTPS server (Live Config):', error);
         }
-    } 
-    // 2. Development Mode: Use paths from .env if provided
+    }
+    // 2. DEVELOPMENT/LOCAL SSL (From Environment Variables)
     else if (process.env.DEV_SSL_KEY_PATH && process.env.DEV_SSL_CERT_PATH) {
         try {
-            // Resolve relative to CWD (server folder)
+            // Resolve relative to CWD (server folder) or use absolute
             const keyPath = path.resolve(process.env.DEV_SSL_KEY_PATH);
             const certPath = path.resolve(process.env.DEV_SSL_CERT_PATH);
 
@@ -47,11 +52,14 @@ const startServer = () => {
                 isHttps = true;
                 keysSource = 'Using paths from .env (Local Dev)';
             } else {
-                 console.warn(`⚠️ Local SSL Keys not found at ${keyPath} or ${certPath}. Falling back to HTTP.`);
+                 console.warn(`⚠️ Local SSL Keys not found at ${keyPath}. Falling back to HTTP.`);
             }
         } catch (error) {
             console.error('Failed to start HTTPS server (Local):', error);
         }
+    }
+    // 3. Auto-detect fallback (Compatible with previous setup if no Env set)
+    else if (config.nodeEnv === 'production') {
     }
 
     // Start Server
