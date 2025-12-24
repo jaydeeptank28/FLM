@@ -54,11 +54,11 @@ function UsersPage() {
 
     const roles = [
         { value: 'Clerk', label: 'Clerk' },
-        { value: 'Section Officer', label: 'Section Officer' },
-        { value: 'Under Secretary', label: 'Under Secretary' },
-        { value: 'Deputy Secretary', label: 'Deputy Secretary' },
-        { value: 'Joint Secretary', label: 'Joint Secretary' },
-        { value: 'Additional Secretary', label: 'Additional Secretary' },
+        { value: 'Section_Officer', label: 'Section Officer' },
+        { value: 'Under_Secretary', label: 'Under Secretary' },
+        { value: 'Deputy_Secretary', label: 'Deputy Secretary' },
+        { value: 'Joint_Secretary', label: 'Joint Secretary' },
+        { value: 'Additional_Secretary', label: 'Additional Secretary' },
         { value: 'Secretary', label: 'Secretary' }
     ];
 
@@ -284,7 +284,7 @@ function UsersPage() {
                                             <TableCell>{getUserDepartment(user)}</TableCell>
                                             <TableCell>
                                                 <Chip 
-                                                    label={getUserRole(user)} 
+                                                    label={getUserRole(user)?.replace(/_/g, ' ')} 
                                                     size="small" 
                                                     color={getUserRole(user) === 'Admin' ? 'error' : 'default'}
                                                 />
