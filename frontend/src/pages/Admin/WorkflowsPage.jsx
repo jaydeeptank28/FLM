@@ -31,7 +31,8 @@ import {
     Grid,
     Avatar,
     Tooltip,
-    CardActions
+    CardActions,
+    Menu,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -42,7 +43,8 @@ import {
     ArrowForward as ArrowIcon,
     CheckCircle as CheckIcon,
     RemoveCircle as RemoveIcon,
-    Star as StarIcon
+    Star as StarIcon,
+    FilterList as FilterListIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -65,6 +67,8 @@ function WorkflowsPage() {
     });
     const [departments, setDepartments] = useState([]);
     const [filterDepartmentId, setFilterDepartmentId] = useState(''); // Default to All Departments
+    const [anchorEl, setAnchorEl] = useState(null);
+    const openFilterMenu = Boolean(anchorEl);
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
 
@@ -281,8 +285,8 @@ function WorkflowsPage() {
     // Filter and Sort Workflows
     const filteredWorkflows = workflows.filter(w => {
         if (!filterDepartmentId) return true; 
-        // Show if Global (no dept) OR matches selected dept
-        return !w.department_id || w.department_id === filterDepartmentId;
+        // Strict Filter: Global workflows (null dept) are HIDDEN if a specific dept is selected
+        return w.department_id === filterDepartmentId;
     }).sort((a, b) => {
         // Sort System/Global first
         const isASystem = !a.department_id && !a.file_type;
@@ -291,6 +295,135 @@ function WorkflowsPage() {
         if (!isASystem && isBSystem) return 1;
         return a.name.localeCompare(b.name);
     });
+
+    // Group workflows by department for display
+    const groupedWorkflows = filteredWorkflows.reduce((acc, workflow) => {
+        let groupName = 'Unknown';
+        if (!workflow.department_id) {
+            groupName = 'Global / System Wide';
+        } else {
+            groupName = workflow.department_name || departments.find(d => d.id === workflow.department_id)?.name || 'Unknown Department';
+        }
+        
+        if (!acc[groupName]) acc[groupName] = [];
+        acc[groupName].push(workflow);
+        return acc;
+    }, {});
+
+    const sortedGroups = Object.keys(groupedWorkflows).sort((a, b) => {
+        if (a.includes('Global')) return -1;
+        if (b.includes('Global')) return 1;
+        return a.localeCompare(b);
+    }).map(name => ({ name, workflows: groupedWorkflows[name] }));
+
+    const renderWorkflowCard = (workflow) => {
+        const isGlobalDefault = !workflow.department_id && !workflow.file_type && workflow.is_default;
+        const isSystemWorkflow = !workflow.department_id && !workflow.file_type;
+        const isDeptDefault = workflow.department_id && !workflow.file_type;
+
+        let badgeColor = 'default';
+        let badgeLabel = 'Custom Workflow';
+        let badgeIcon = undefined;
+
+        if (isSystemWorkflow) {
+            badgeColor = 'secondary';
+            badgeLabel = 'Global Default';
+            badgeIcon = <StarIcon sx={{ fontSize: '1rem !important' }} />;
+        } else if (isDeptDefault) {
+            badgeColor = 'primary';
+            badgeLabel = `${workflow.department_name} Default`;
+        } else {
+            badgeColor = 'success';
+            badgeLabel = `${workflow.department_name} - ${workflow.file_type}`;
+        }
+
+        return (
+            <Grid item xs={12} md={6} lg={4} key={workflow.id}>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <CardContent sx={{ flexGrow: 1 }}>
+                        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <Chip 
+                                label={badgeLabel} 
+                                size="small" 
+                                color={badgeColor}
+                                icon={badgeIcon}
+                                sx={{ height: 24, fontSize: '0.75rem', fontWeight: 600 }}
+                            />
+                            <Chip 
+                                label={workflow.is_active !== false ? "Active" : "Inactive"} 
+                                size="small" 
+                                color={workflow.is_active !== false ? "success" : "default"}
+                                variant="outlined"
+                                sx={{ height: 24, fontSize: '0.7rem' }}
+                            />
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.main', mr: 2 }}>
+                                <WorkflowIcon />
+                            </Avatar>
+                            <Typography variant="h6" component="div" noWrap sx={{ maxWidth: 200, fontWeight: 600 }}>
+                                {workflow.name}
+                            </Typography>
+                        </Box>
+
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, height: 40, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                            {workflow.description || 'No description provided.'}
+                        </Typography>
+
+                        <Divider sx={{ my: 2 }} />
+
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2, minHeight: 24 }}>
+                            {workflow.department_name && (
+                                <Chip label={workflow.department_name} size="small" variant="outlined" color="primary" />
+                            )}
+                            
+                            {workflow.file_type && (
+                                <Chip label={workflow.file_type} size="small" variant="outlined" color="info" />
+                            )}
+                            
+                            {isSystemWorkflow && (
+                                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                    Applies to all files & departments
+                                </Typography>
+                            )}
+                        </Box>
+
+                        <Typography variant="caption" color="text.secondary" display="block">
+                            <strong>{workflow.max_levels || workflow.levels?.length || 0}</strong> Approval Levels
+                        </Typography>
+                    </CardContent>
+                    <CardActions sx={{ justifyContent: 'flex-end', p: 2, pt: 0 }}>
+                        <Button 
+                            size="small" 
+                            startIcon={<ViewIcon />}
+                            onClick={() => handleViewWorkflow(workflow)}
+                        >
+                            View
+                        </Button>
+                        <Button 
+                            size="small" 
+                            startIcon={<EditIcon />}
+                            onClick={() => handleOpenDialog(workflow)}
+                        >
+                            Edit
+                        </Button>
+                        
+                        {!isSystemWorkflow && (
+                            <Button 
+                                size="small" 
+                                color="error"
+                                startIcon={<DeleteIcon />}
+                                onClick={() => handleDelete(workflow.id)}
+                            >
+                                Delete
+                            </Button>
+                        )}
+                    </CardActions>
+                </Card>
+            </Grid>
+        );
+    };
 
     return (
         <Box>
@@ -321,23 +454,32 @@ function WorkflowsPage() {
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <TextField
-                        select
-                        size="small"
-                        label="Filter Department"
-                        value={filterDepartmentId}
-                        onChange={(e) => setFilterDepartmentId(e.target.value)}
-                        sx={{ minWidth: 200, bgcolor: 'background.paper' }}
+                    <Button
+                        variant="outlined"
+                        startIcon={<FilterListIcon />}
+                        onClick={(e) => setAnchorEl(e.currentTarget)}
+                        sx={{ minWidth: 200, justifyContent: 'space-between', bgcolor: 'background.paper' }}
+                        endIcon={<ArrowIcon sx={{ transform: 'rotate(90deg)' }} />}
                     >
-                        <MenuItem value="">
+                        {filterDepartmentId 
+                            ? (departments.find(d => d.id === filterDepartmentId)?.name || 'Unknown Dept')
+                            : 'All Departments'}
+                    </Button>
+                    <Menu
+                        anchorEl={anchorEl}
+                        open={openFilterMenu}
+                        onClose={() => setAnchorEl(null)}
+                        PaperProps={{ sx: { minWidth: 200 } }}
+                    >
+                        <MenuItem onClick={() => { setFilterDepartmentId(''); setAnchorEl(null); }}>
                             <em>All Departments</em>
                         </MenuItem>
                         {departments.map((dept) => (
-                            <MenuItem key={dept.id} value={dept.id}>
+                            <MenuItem key={dept.id} onClick={() => { setFilterDepartmentId(dept.id); setAnchorEl(null); }}>
                                 {dept.name}
                             </MenuItem>
                         ))}
-                    </TextField>
+                    </Menu>
                     <Button
                         variant="contained"
                         startIcon={<AddIcon />}
@@ -371,119 +513,18 @@ function WorkflowsPage() {
                     </CardContent>
                 </Card>
             ) : (
-                <Grid container spacing={3}>
-                    {filteredWorkflows.map((workflow) => {
-                        const isGlobalDefault = !workflow.department_id && !workflow.file_type && workflow.is_default;
-                        const isSystemWorkflow = !workflow.department_id && !workflow.file_type;
-                        const isDeptDefault = workflow.department_id && !workflow.file_type;
-
-                        let badgeColor = 'default';
-                        let badgeLabel = 'Custom Workflow';
-                        let badgeIcon = undefined;
-
-                        if (isSystemWorkflow) {
-                            badgeColor = 'secondary';
-                            badgeLabel = 'Global Default';
-                            badgeIcon = <StarIcon sx={{ fontSize: '1rem !important' }} />;
-                        } else if (isDeptDefault) {
-                            badgeColor = 'primary';
-                            badgeLabel = `${workflow.department_name} Default`;
-                        } else {
-                            badgeColor = 'success';
-                            badgeLabel = `${workflow.department_name} - ${workflow.file_type}`;
-                        }
-
-                        return (
-                            <Grid item xs={12} md={6} lg={4} key={workflow.id}>
-                                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                                    <CardContent sx={{ flexGrow: 1 }}>
-                                        {/* Badge Row */}
-                                        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                            <Chip 
-                                                label={badgeLabel} 
-                                                size="small" 
-                                                color={badgeColor}
-                                                icon={badgeIcon}
-                                                sx={{ height: 24, fontSize: '0.75rem', fontWeight: 600 }}
-                                            />
-                                            <Chip 
-                                                label={workflow.is_active !== false ? "Active" : "Inactive"} 
-                                                size="small" 
-                                                color={workflow.is_active !== false ? "success" : "default"}
-                                                variant="outlined"
-                                                sx={{ height: 24, fontSize: '0.7rem' }}
-                                            />
-                                        </Box>
-
-                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                            <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.main', mr: 2 }}>
-                                                <WorkflowIcon />
-                                            </Avatar>
-                                            <Typography variant="h6" component="div" noWrap sx={{ maxWidth: 200, fontWeight: 600 }}>
-                                                {workflow.name}
-                                            </Typography>
-                                        </Box>
-
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, height: 40, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                                            {workflow.description || 'No description provided.'}
-                                        </Typography>
-
-                                        <Divider sx={{ my: 2 }} />
-
-                                        {/* Scope Chips - Only show specific values, hide generic 'All' */}
-                                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2, minHeight: 24 }}>
-                                            {workflow.department_name && (
-                                                <Chip label={workflow.department_name} size="small" variant="outlined" color="primary" />
-                                            )}
-                                            
-                                            {workflow.file_type && (
-                                                <Chip label={workflow.file_type} size="small" variant="outlined" color="info" />
-                                            )}
-                                            
-                                            {/* Show hint if Global */}
-                                            {isSystemWorkflow && (
-                                                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                                                    Applies to all files & departments
-                                                </Typography>
-                                            )}
-                                        </Box>
-
-                                        <Typography variant="caption" color="text.secondary" display="block">
-                                            <strong>{workflow.max_levels || workflow.levels?.length || 0}</strong> Approval Levels
-                                        </Typography>
-                                    </CardContent>
-                                    <CardActions sx={{ justifyContent: 'flex-end', p: 2, pt: 0 }}>
-                                        <Button 
-                                            size="small" 
-                                            startIcon={<ViewIcon />}
-                                            onClick={() => handleViewWorkflow(workflow)}
-                                        >
-                                            View
-                                        </Button>
-                                        <Button 
-                                            size="small" 
-                                            startIcon={<EditIcon />}
-                                            onClick={() => handleOpenDialog(workflow)}
-                                        >
-                                            Edit
-                                        </Button>
-                                        
-                                        {!isSystemWorkflow && (
-                                            <Button 
-                                                size="small" 
-                                                color="error"
-                                                startIcon={<DeleteIcon />}
-                                                onClick={() => handleDelete(workflow.id)}
-                                            >
-                                                Delete
-                                            </Button>
-                                        )}
-                                    </CardActions>
-                                </Card>
+                <Box>
+                    {sortedGroups.map(group => (
+                        <Box key={group.name} sx={{ mb: 5 }}>
+                            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600, borderBottom: '2px solid', borderColor: 'primary.light', pb: 1, display: 'inline-block' }}>
+                                {group.name}
+                            </Typography>
+                            <Grid container spacing={3}>
+                                {group.workflows.map(workflow => renderWorkflowCard(workflow))}
                             </Grid>
-                        );
-                    })}
-                </Grid>
+                        </Box>
+                    ))}
+                </Box>
             )}
 
             {/* View Workflow Dialog */}
