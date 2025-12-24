@@ -319,7 +319,7 @@ function FileCreatePage() {
                         <Step key={level.level} expanded active>
                             <StepLabel icon={<Typography variant="caption" sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: 'grey.200', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>{index + 1}</Typography>}>
                                 <Typography variant="body2" fontWeight={600}>
-                                    {ROLE_LABELS[level.role_required] || level.role_required}
+                                    {(ROLE_LABELS && ROLE_LABELS[level.role_required]) || level.role_required?.replace(/_/g, ' ')}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary" display="block">
                                     {level.approvers && level.approvers.length > 0 

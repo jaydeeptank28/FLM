@@ -41,6 +41,7 @@ import {
     Visibility as ViewIcon,
     ArrowForward as ArrowIcon,
     CheckCircle as CheckIcon,
+    RemoveCircle as RemoveIcon,
     Star as StarIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
@@ -80,6 +81,18 @@ function WorkflowsPage() {
 
     // File types for dropdown
     const fileTypes = ['Budget', 'Policy', 'Correspondence', 'Proposal', 'Report', 'Contract', 'Memo', 'Circular', 'General'];
+
+    const formatRoleName = (role) => {
+        try {
+            if (!role) return '';
+            const found = availableRoles.find(r => r.value === role);
+            if (found) return found.label.split(': ')[1]; // Return "Section Officer" instead of "L2: Section Officer" for cleaner UI
+            return role.replace(/_/g, ' ');
+        } catch (e) {
+            console.error('Role format error:', e);
+            return role || '';
+        }
+    };
 
     useEffect(() => {
         loadWorkflows();
@@ -505,7 +518,7 @@ function WorkflowsPage() {
                                     <Step key={level.id || index} completed>
                                         <StepLabel>
                                             <Typography fontWeight={500}>
-                                                Level {level.level || level.level_order || index + 1}: {level.role || level.role_required}
+                                                Level {level.level || level.level_order || index + 1}: {formatRoleName(level.role || level.role_required)}
                                             </Typography>
                                             <Typography variant="caption" color="text.secondary">
                                                 {level.description || 'Approval required at this level'}
@@ -761,7 +774,7 @@ function WorkflowsPage() {
                                     <React.Fragment key={index}>
                                         <ArrowIcon fontSize="small" />
                                         <Chip 
-                                            label={`L${index + 1}: ${level.role}`} 
+                                            label={`L${index + 1}: ${formatRoleName(level.role)}`} 
                                             size="small" 
                                             color="primary"
                                         />
