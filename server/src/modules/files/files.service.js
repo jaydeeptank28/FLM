@@ -206,18 +206,36 @@ class FilesService {
 
             const creatorAuthority = userRole ? getRoleAuthority(userRole.role) : 0;
 
-            // Calculate which levels will be skipped
-            const levelsWithSkip = template.levels.map(level => {
+            // Calculate which levels will be skipped and fetch approvers
+            const levelsWithSkip = await Promise.all(template.levels.map(async level => {
                 const levelAuthority = level.authority_level || getRoleAuthority(level.role);
                 const willSkip = creatorAuthority >= levelAuthority;
+
+                // Fetch potential approvers for this level
+                // Use workflow's fixed department if exists, otherwise use the requested department (for Global workflows)
+                const targetDeptId = template.department_id || departmentId;
+                
+                let approvers = [];
+                if (targetDeptId && level.role_required) {
+                    approvers = await this.db('users')
+                        .select('users.name', 'users.email')
+                        .join('user_department_roles', 'users.id', 'user_department_roles.user_id')
+                        .where({
+                            'user_department_roles.department_id': targetDeptId,
+                            'user_department_roles.role': level.role_required
+                        })
+                        .limit(5); // Limit to top 5 to avoid UI clutter
+                }
+
                 return {
                     ...level,
+                    approvers, // Attach the list of names
                     willSkip,
                     skipReason: willSkip 
                         ? `Your role has equal/higher authority than required`
                         : null
                 };
-            });
+            }));
 
             const firstActiveLevel = levelsWithSkip.find(l => !l.willSkip)?.level || 
                                      (template.levels.length > 0 ? template.levels.length : 1);

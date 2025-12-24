@@ -360,8 +360,8 @@ class AdminService {
         // CALCULATE NEW VALUES
         // ═══════════════════════════════════════════════════════════
 
-        const newDeptId = departmentId !== undefined ? departmentId : template.department_id;
-        const newFileType = fileType !== undefined ? fileType : template.file_type;
+        const newDeptId = departmentId !== undefined ? (departmentId || null) : template.department_id;
+        const newFileType = fileType !== undefined ? (fileType || null) : template.file_type;
         const newIsActive = isActive !== undefined ? isActive : template.is_active;
 
         // AUTO-DERIVE is_default based on new scope

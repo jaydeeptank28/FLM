@@ -20,7 +20,10 @@ import {
     ListItemSecondaryAction,
     CircularProgress,
     Chip,
-    Paper
+    Paper,
+    Stepper,
+    Step,
+    StepLabel
 } from '@mui/material';
 import {
     Save as SaveIcon,
@@ -42,7 +45,7 @@ import api from '../../services/api';
 
 function FileCreatePage() {
     const navigate = useNavigate();
-    const { currentDepartment, currentDepartmentId, user } = useAuth();
+    const { currentDepartment, currentDepartmentId, currentUser } = useAuth();
     const { createFile, performWorkflowAction } = useFiles();
     const { showSuccess, showError } = useNotification();
 
@@ -300,33 +303,55 @@ function FileCreatePage() {
                 </Typography>
                 
                 {/* Approval Levels */}
-                <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                    Approval Levels:
+                <Typography variant="subtitle2" fontWeight={600} color="text.secondary" gutterBottom>
+                    Approval Flow
                 </Typography>
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                    {workflowPreview.levels?.map((level) => (
-                        <Box 
-                            key={level.level} 
-                            sx={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: 1,
-                                pl: 1
-                            }}
-                        >
-                            <Typography variant="body2" color="text.primary">
-                                Level {level.level}: <strong>{ROLE_LABELS[level.role_required] || level.role_required}</strong>
-                            </Typography>
-                        </Box>
+                <Stepper orientation="vertical" activeStep={-1} sx={{ mt: 2 }}>
+                    <Step expanded active>
+                        <StepLabel icon={<Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'primary.main' }} />}>
+                            <Typography variant="body2" fontWeight={600}>File Created</Typography>
+                            <Typography variant="caption" color="text.secondary">By You ({currentUser?.name})</Typography>
+                        </StepLabel>
+                    </Step>
+                    
+                    {workflowPreview.levels?.map((level, index) => (
+                        <Step key={level.level} expanded active>
+                            <StepLabel icon={<Typography variant="caption" sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: 'grey.200', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>{index + 1}</Typography>}>
+                                <Typography variant="body2" fontWeight={600}>
+                                    {ROLE_LABELS[level.role_required] || level.role_required}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                    {level.approvers && level.approvers.length > 0 
+                                        ? `Approvers: ${level.approvers.map(u => u.name).join(', ')}`
+                                        : `Approver: Any ${ROLE_LABELS[level.role_required] || level.role_required}`
+                                    }
+                                </Typography>
+                            </StepLabel>
+                        </Step>
                     ))}
-                </Box>
 
-                <Divider sx={{ my: 1.5 }} />
+                    <Step expanded active>
+                        <StepLabel icon={<CheckIcon color="success" sx={{ fontSize: 20 }} />}>
+                            <Typography variant="body2" fontWeight={600} color="success.main">Final Approval</Typography>
+                            <Typography variant="caption" color="text.secondary">Workflow Complete</Typography>
+                        </StepLabel>
+                    </Step>
+                </Stepper>
+
+                <Divider sx={{ my: 2 }} />
                 
-                <Typography variant="caption" color="text.secondary">
-                    Total: {workflowPreview.totalLevels || workflowPreview.levels?.length || 0} approval level(s)
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">
+                        Total Levels: {workflowPreview.totalLevels || workflowPreview.levels?.length || 0}
+                    </Typography>
+                    <Chip 
+                        label={workflowPreview.scopeReason === 'GLOBAL_DEFAULT' ? 'Global Default' : 'Department Standard'} 
+                        size="small" 
+                        color="info" 
+                        variant="soft" 
+                    />
+                </Box>
             </Paper>
         );
     };
