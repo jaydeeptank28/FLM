@@ -86,7 +86,7 @@ function Header({ open, onMenuClick }) {
 
     const formatRole = (role) => {
         if (!role) return '';
-        return role.replace(/_/g, ' ');
+        return role; // Roles now stored with spaces, no need to replace underscores
     };
 
     return (

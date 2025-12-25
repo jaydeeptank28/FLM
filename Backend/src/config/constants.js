@@ -9,26 +9,25 @@
  * that level is automatically skipped.
  */
 const ROLE_AUTHORITY = {
-    Clerk: 1,
-    Section_Officer: 2,
-    Under_Secretary: 3,
-    Deputy_Secretary: 4,
-    Joint_Secretary: 5,
-    Additional_Secretary: 6,
-    Secretary: 7,
-    Admin: 0  // Admin has management authority, not workflow authority
+    'Clerk': 1,
+    'Section Officer': 2,
+    'Under Secretary': 3,
+    'Deputy Secretary': 4,
+    'Joint Secretary': 5,
+    'Additional Secretary': 6,
+    'Secretary': 7,
+    'Admin': 0  
 };
 
-// Role display labels
 const ROLE_LABELS = {
-    Clerk: 'Clerk',
-    Section_Officer: 'Section Officer',
-    Under_Secretary: 'Under Secretary',
-    Deputy_Secretary: 'Deputy Secretary',
-    Joint_Secretary: 'Joint Secretary',
-    Additional_Secretary: 'Additional Secretary',
-    Secretary: 'Secretary',
-    Admin: 'Administrator'
+    'Clerk': 'Clerk',
+    'Section Officer': 'Section Officer',
+    'Under Secretary': 'Under Secretary',
+    'Deputy Secretary': 'Deputy Secretary',
+    'Joint Secretary': 'Joint Secretary',
+    'Additional Secretary': 'Additional Secretary',
+    'Secretary': 'Secretary',
+    'Admin': 'Administrator'
 };
 
 // Get all workflow-eligible roles (excludes Admin)

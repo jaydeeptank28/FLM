@@ -91,7 +91,7 @@ function WorkflowsPage() {
             if (!role) return '';
             const found = availableRoles.find(r => r.value === role);
             if (found) return found.label.split(': ')[1]; // Return "Section Officer" instead of "L2: Section Officer" for cleaner UI
-            return role.replace(/_/g, ' ');
+            return role; // Roles now stored with spaces, no need to replace underscores
         } catch (e) {
             console.error('Role format error:', e);
             return role || '';

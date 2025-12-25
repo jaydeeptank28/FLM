@@ -333,7 +333,7 @@ function FileCreatePage() {
                                     }
                                 >
                                     <Typography variant="body2" fontWeight={600} color={isSkipped ? 'success.main' : 'text.primary'}>
-                                        {(ROLE_LABELS && ROLE_LABELS[level.role_required]) || level.role_required?.replace(/_/g, ' ')}
+                                        {(ROLE_LABELS && ROLE_LABELS[level.role_required]) || level.role_required}
                                         {isSkipped && ' (Auto-Skipped)'}
                                     </Typography>
                                     

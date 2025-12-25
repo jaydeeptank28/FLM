@@ -290,7 +290,7 @@ function UsersPage() {
                                             <TableCell>{getUserDepartment(user)}</TableCell>
                                             <TableCell>
                                                 <Chip 
-                                                    label={getUserRole(user)?.replace(/_/g, ' ')} 
+                                                    label={getUserRole(user)} 
                                                     size="small" 
                                                     color={getUserRole(user) === 'Admin' ? 'error' : 'default'}
                                                 />

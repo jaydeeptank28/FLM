@@ -81,40 +81,40 @@ export const STATE_TRANSITIONS = {
   [FILE_STATES.ARCHIVED]: []
 };
 
-// FLM Standard Roles with Authority Levels
+// FLM Standard Roles with Authority Levels (stored with spaces, not underscores)
 export const ROLES = {
   Clerk: 'Clerk',
-  Section_Officer: 'Section_Officer',
-  Under_Secretary: 'Under_Secretary',
-  Deputy_Secretary: 'Deputy_Secretary',
-  Joint_Secretary: 'Joint_Secretary',
-  Additional_Secretary: 'Additional_Secretary',
+  SectionOfficer: 'Section Officer',
+  UnderSecretary: 'Under Secretary',
+  DeputySecretary: 'Deputy Secretary',
+  JointSecretary: 'Joint Secretary',
+  AdditionalSecretary: 'Additional Secretary',
   Secretary: 'Secretary',
   Admin: 'Admin'
 };
 
-// Role display labels
+// Role display labels (same as values since we store with spaces)
 export const ROLE_LABELS = {
-  [ROLES.Clerk]: 'Clerk',
-  [ROLES.Section_Officer]: 'Section Officer',
-  [ROLES.Under_Secretary]: 'Under Secretary',
-  [ROLES.Deputy_Secretary]: 'Deputy Secretary',
-  [ROLES.Joint_Secretary]: 'Joint Secretary',
-  [ROLES.Additional_Secretary]: 'Additional Secretary',
-  [ROLES.Secretary]: 'Secretary',
-  [ROLES.Admin]: 'Administrator'
+  'Clerk': 'Clerk',
+  'Section Officer': 'Section Officer',
+  'Under Secretary': 'Under Secretary',
+  'Deputy Secretary': 'Deputy Secretary',
+  'Joint Secretary': 'Joint Secretary',
+  'Additional Secretary': 'Additional Secretary',
+  'Secretary': 'Secretary',
+  'Admin': 'Administrator'
 };
 
 // Role authority levels (for skip logic display)
 export const ROLE_AUTHORITY = {
-  [ROLES.Clerk]: 1,
-  [ROLES.Section_Officer]: 2,
-  [ROLES.Under_Secretary]: 3,
-  [ROLES.Deputy_Secretary]: 4,
-  [ROLES.Joint_Secretary]: 5,
-  [ROLES.Additional_Secretary]: 6,
-  [ROLES.Secretary]: 7,
-  [ROLES.Admin]: 0  // Admin has management authority, not workflow authority
+  'Clerk': 1,
+  'Section Officer': 2,
+  'Under Secretary': 3,
+  'Deputy Secretary': 4,
+  'Joint Secretary': 5,
+  'Additional Secretary': 6,
+  'Secretary': 7,
+  'Admin': 0  // Admin has management authority, not workflow authority
 };
 
 // Workflow-eligible roles (excludes Admin)

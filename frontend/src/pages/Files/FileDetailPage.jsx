@@ -596,7 +596,7 @@ function FileDetailPage() {
                                                 >
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                         <Typography fontWeight={600} color={isSkipped ? 'text.secondary' : 'text.primary'}>
-                                                            {level.role_required?.replace(/_/g, ' ') || `Level ${level.level}`}
+                                                            {level.role_required || `Level ${level.level}`}
                                                         </Typography>
                                                         {isSkipped && (
                                                             <Chip label="Skipped" size="small" variant="outlined" />
