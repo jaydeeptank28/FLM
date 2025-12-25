@@ -56,13 +56,12 @@ class ApiService {
             throw new Error('Network error. Please check your connection.');
         }
 
-        // Handle 401 - try to refresh token
-        if (response.status === 401 && !options._isRetry) {
+        const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/refresh');
+        if (response.status === 401 && !options._isRetry && !isAuthEndpoint) {
             const refreshed = await this.refreshToken();
             if (refreshed) {
                 return this.request(endpoint, { ...options, _isRetry: true });
             }
-            // Refresh failed, clear auth
             this.setAccessToken(null);
             window.dispatchEvent(new CustomEvent('auth:expired'));
             throw new Error('Session expired. Please login again.');

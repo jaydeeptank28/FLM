@@ -69,7 +69,6 @@ export function AuthProvider({ children }) {
     // Login function
     const login = useCallback(async (email, password) => {
         try {
-            setIsLoading(true);
             const result = await api.login(email, password);
             setCurrentUser(result.user);
 
@@ -89,8 +88,6 @@ export function AuthProvider({ children }) {
             return { success: true, user: result.user };
         } catch (error) {
             return { success: false, error: error.message };
-        } finally {
-            setIsLoading(false);
         }
     }, []);
 
