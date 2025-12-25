@@ -23,14 +23,39 @@ export function AuthProvider({ children }) {
                     const user = await api.getMe();
                     setCurrentUser(user);
 
+                    // Load departments first
+                    const depts = await api.getDepartments();
+                    setDepartments(depts);
+
+                    // Check if user is Admin
+                    const isAdmin = user.departmentRoles?.some(dr => dr.role === 'Admin');
+
                     // Restore department selection from localStorage
                     const storedDeptId = localStorage.getItem('currentDepartmentId');
-                    if (storedDeptId && user.departmentRoles) {
+                    
+                    if (storedDeptId) {
+                        // First check user's assigned departments
                         const deptRole = user.departmentRoles.find(dr => dr.departmentId === storedDeptId);
+                        
                         if (deptRole) {
                             setCurrentDepartmentId(storedDeptId);
                             setCurrentDepartment(deptRole.departmentCode);
                             setCurrentRole(deptRole.role);
+                        } else if (isAdmin) {
+                            // Admin can be in any department
+                            const dept = depts.find(d => d.id === storedDeptId);
+                            if (dept) {
+                                setCurrentDepartmentId(storedDeptId);
+                                setCurrentDepartment(dept.code);
+                                setCurrentRole('Admin');
+                            } else {
+                                // Fallback to first department
+                                const dr = user.departmentRoles[0];
+                                setCurrentDepartmentId(dr.departmentId);
+                                setCurrentDepartment(dr.departmentCode);
+                                setCurrentRole(dr.role);
+                                localStorage.setItem('currentDepartmentId', dr.departmentId);
+                            }
                         }
                     } else if (user.departmentRoles?.length >= 1) {
                         // Auto-select first department for all users (fallback if no stored ID)
@@ -40,10 +65,6 @@ export function AuthProvider({ children }) {
                         setCurrentRole(dr.role);
                         localStorage.setItem('currentDepartmentId', dr.departmentId);
                     }
-
-                    // Load departments
-                    const depts = await api.getDepartments();
-                    setDepartments(depts);
                 } catch (error) {
                     console.error('Auth init failed:', error);
                     api.setAccessToken(null);
@@ -98,18 +119,35 @@ export function AuthProvider({ children }) {
             return false;
         }
 
+        // Check if user is Admin
+        const isAdmin = currentUser.departmentRoles?.some(dr => dr.role === 'Admin');
+
+        // First try to find in user's assigned departments
         const deptRole = currentUser.departmentRoles.find(dr => dr.departmentId === departmentId);
-        if (!deptRole) {
-            console.error('User does not have access to department:', departmentId);
-            return false;
+        
+        if (deptRole) {
+            setCurrentDepartmentId(departmentId);
+            setCurrentDepartment(deptRole.departmentCode);
+            setCurrentRole(deptRole.role);
+            localStorage.setItem('currentDepartmentId', departmentId);
+            return true;
         }
 
-        setCurrentDepartmentId(departmentId);
-        setCurrentDepartment(deptRole.departmentCode);
-        setCurrentRole(deptRole.role);
-        localStorage.setItem('currentDepartmentId', departmentId);
-        return true;
-    }, [currentUser]);
+        // If Admin, allow switching to any department
+        if (isAdmin) {
+            const dept = departments.find(d => d.id === departmentId);
+            if (dept) {
+                setCurrentDepartmentId(departmentId);
+                setCurrentDepartment(dept.code);
+                setCurrentRole('Admin'); // Keep Admin role
+                localStorage.setItem('currentDepartmentId', departmentId);
+                return true;
+            }
+        }
+
+        console.error('User does not have access to department:', departmentId);
+        return false;
+    }, [currentUser, departments]);
 
     // Logout function
     const logout = useCallback(async () => {

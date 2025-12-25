@@ -31,7 +31,7 @@ const DRAWER_WIDTH = 260;
 
 function Header({ open, onMenuClick }) {
     const navigate = useNavigate();
-    const { currentUser, currentDepartment, currentDepartmentId, currentRole, logout, getUserDepartments, selectDepartment } = useAuth();
+    const { currentUser, currentDepartment, currentDepartmentId, currentRole, logout, getUserDepartments, getAllDepartments, selectDepartment } = useAuth();
     const [anchorEl, setAnchorEl] = useState(null);
     const [deptAnchorEl, setDeptAnchorEl] = useState(null);
 
@@ -68,8 +68,12 @@ function Header({ open, onMenuClick }) {
         navigate('/search');
     };
 
+    // Admin sees all departments, others see only assigned departments
+    const isAdmin = currentRole === 'Admin';
     const userDepartments = getUserDepartments();
-    const canSwitchDepartment = userDepartments.length > 1;
+    const allDepartments = getAllDepartments();
+    const departmentsToShow = isAdmin ? allDepartments : userDepartments;
+    const canSwitchDepartment = departmentsToShow.length > 1 || isAdmin;
 
     const getInitials = (name) => {
         if (!name) return 'U';
@@ -207,7 +211,7 @@ function Header({ open, onMenuClick }) {
                         </Typography>
                     </Box>
                     <Divider />
-                    {userDepartments.map((dept) => (
+                    {departmentsToShow.map((dept) => (
                         <MenuItem
                             key={dept.id}
                             selected={dept.id === currentDepartmentId}
