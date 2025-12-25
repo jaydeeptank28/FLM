@@ -14,7 +14,9 @@ import {
     Badge,
     Tooltip,
     useTheme,
-    useMediaQuery
+    useMediaQuery,
+    Menu,
+    MenuItem
 } from '@mui/material';
 import {
     Dashboard as DashboardIcon,
@@ -37,7 +39,8 @@ import {
     ExpandMore,
     Description as FileIcon,
     ChevronLeft as ChevronLeftIcon,
-    ImportExport as ImportExportIcon
+    FileUpload as ImportIcon,
+    FileDownload as ExportIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFiles } from '../../contexts/FileContext';
@@ -60,6 +63,10 @@ function Sidebar({ open, onClose, onToggle }) {
     const [adminOpen, setAdminOpen] = useState(false);
     const [localFolderCounts, setLocalFolderCounts] = useState({});
     const [pendingDaakCount, setPendingDaakCount] = useState(0);
+    
+    // Popup menu anchors for collapsed sidebar
+    const [adminMenuAnchor, setAdminMenuAnchor] = useState(null);
+    const [daakMenuAnchor, setDaakMenuAnchor] = useState(null);
 
     // Use context folderCounts if available, otherwise use local
     const folderCounts = Object.keys(contextFolderCounts || {}).length > 0 
@@ -152,6 +159,9 @@ function Sidebar({ open, onClose, onToggle }) {
             path: '/files/archived',
             badge: folderCounts['archived'] || 0,
         },
+    ];
+
+    const actionItems = [
         { divider: true, label: 'Actions' },
         {
             label: 'Create File',
@@ -165,9 +175,14 @@ function Sidebar({ open, onClose, onToggle }) {
             path: '/search',
         },
         {
-            label: 'Import / Export',
-            icon: <ImportExportIcon />,
-            path: '/import-export',
+            label: 'Import',
+            icon: <ImportIcon />,
+            path: '/import',
+        },
+        {
+            label: 'Export',
+            icon: <ExportIcon />,
+            path: '/export',
         },
     ];
 
@@ -316,11 +331,104 @@ function Sidebar({ open, onClose, onToggle }) {
                     );
                 })}
 
+                {/* Admin Section - Moved Up */}
+                {isAdmin() && (
+                    <>
+                        <ListItem disablePadding sx={{ px: 1, mt: 1 }}>
+                            <Tooltip title={open ? '' : 'Admin'} placement="right">
+                                <ListItemButton
+                                    onClick={(e) => {
+                                        if (open) {
+                                            setAdminOpen(!adminOpen);
+                                        } else {
+                                            setAdminMenuAnchor(e.currentTarget);
+                                        }
+                                    }}
+                                    sx={{
+                                        borderRadius: 2,
+                                        mb: 0.5,
+                                        minHeight: 44,
+                                        justifyContent: open ? 'initial' : 'center',
+                                        px: open ? 2 : 1.5,
+                                    }}
+                                >
+                                    <ListItemIcon sx={{ minWidth: open ? 40 : 0, justifyContent: 'center' }}>
+                                        <SettingsIcon />
+                                    </ListItemIcon>
+                                    {open && (
+                                        <>
+                                            <ListItemText
+                                                primary="Admin"
+                                                primaryTypographyProps={{ fontSize: '0.875rem' }}
+                                            />
+                                            {adminOpen ? <ExpandLess /> : <ExpandMore />}
+                                        </>
+                                    )}
+                                </ListItemButton>
+                            </Tooltip>
+                        </ListItem>
+
+                        {/* Expanded Sidebar: Collapse */}
+                        {open && (
+                            <Collapse in={adminOpen} timeout="auto" unmountOnExit>
+                                <List component="div" disablePadding>
+                                    {adminItems.map((item) => (
+                                        <ListItem key={item.path} disablePadding sx={{ px: 1 }}>
+                                            <ListItemButton
+                                                selected={isSelected(item.path)}
+                                                onClick={() => handleNavigate(item.path)}
+                                                sx={{ borderRadius: 2, mb: 0.5, pl: 4 }}
+                                            >
+                                                <ListItemIcon sx={{ minWidth: 40 }}>
+                                                    {item.icon}
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={item.label}
+                                                    primaryTypographyProps={{ fontSize: '0.875rem' }}
+                                                />
+                                            </ListItemButton>
+                                        </ListItem>
+                                    ))}
+                                </List>
+                            </Collapse>
+                        )}
+
+                        {/* Collapsed Sidebar: Popup Menu */}
+                        <Menu
+                            anchorEl={adminMenuAnchor}
+                            open={Boolean(adminMenuAnchor)}
+                            onClose={() => setAdminMenuAnchor(null)}
+                            anchorOrigin={{ vertical: 'center', horizontal: 'right' }}
+                            transformOrigin={{ vertical: 'center', horizontal: 'left' }}
+                        >
+                            {adminItems.map((item) => (
+                                <MenuItem
+                                    key={item.path}
+                                    selected={isSelected(item.path)}
+                                    onClick={() => {
+                                        handleNavigate(item.path);
+                                        setAdminMenuAnchor(null);
+                                    }}
+                                >
+                                    <ListItemIcon>{item.icon}</ListItemIcon>
+                                    <ListItemText primary={item.label} />
+                                </MenuItem>
+                            ))}
+                        </Menu>
+                    </>
+                )}
+
                 {/* Daak Section */}
                 <ListItem disablePadding sx={{ px: 1 }}>
                     <Tooltip title={open ? '' : 'Daak'} placement="right">
                         <ListItemButton
-                            onClick={() => setDaakOpen(!daakOpen)}
+                            onClick={(e) => {
+                                if (open) {
+                                    setDaakOpen(!daakOpen);
+                                } else {
+                                    setDaakMenuAnchor(e.currentTarget);
+                                }
+                            }}
                             sx={{
                                 borderRadius: 2,
                                 mb: 0.5,
@@ -347,6 +455,7 @@ function Sidebar({ open, onClose, onToggle }) {
                     </Tooltip>
                 </ListItem>
 
+                {/* Expanded Sidebar: Collapse */}
                 {open && (
                     <Collapse in={daakOpen} timeout="auto" unmountOnExit>
                         <List component="div" disablePadding>
@@ -371,62 +480,90 @@ function Sidebar({ open, onClose, onToggle }) {
                     </Collapse>
                 )}
 
-                {/* Admin Section */}
-                {isAdmin() && (
-                    <>
-                        <ListItem disablePadding sx={{ px: 1 }}>
-                            <Tooltip title={open ? '' : 'Admin'} placement="right">
+                {/* Collapsed Sidebar: Popup Menu */}
+                <Menu
+                    anchorEl={daakMenuAnchor}
+                    open={Boolean(daakMenuAnchor)}
+                    onClose={() => setDaakMenuAnchor(null)}
+                    anchorOrigin={{ vertical: 'center', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'center', horizontal: 'left' }}
+                >
+                    {daakItems.map((item) => (
+                        <MenuItem
+                            key={item.path}
+                            selected={isSelected(item.path)}
+                            onClick={() => {
+                                handleNavigate(item.path);
+                                setDaakMenuAnchor(null);
+                            }}
+                        >
+                            <ListItemIcon>{item.icon}</ListItemIcon>
+                            <ListItemText primary={item.label} />
+                        </MenuItem>
+                    ))}
+                </Menu>
+
+                {/* Actions Section - After Daak */}
+                {actionItems.map((item, index) => {
+                    if (item.divider) {
+                        return open ? (
+                            <Box key={`action-${index}`} sx={{ px: 2, py: 1, mt: 1 }}>
+                                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                    {item.label}
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <Divider key={`action-${index}`} sx={{ my: 1 }} />
+                        );
+                    }
+                    return (
+                        <ListItem key={item.path} disablePadding sx={{ px: 1 }}>
+                            <Tooltip title={open ? '' : item.label} placement="right">
                                 <ListItemButton
-                                    onClick={() => setAdminOpen(!adminOpen)}
+                                    selected={isSelected(item.path)}
+                                    onClick={() => handleNavigate(item.path)}
                                     sx={{
                                         borderRadius: 2,
                                         mb: 0.5,
                                         minHeight: 44,
                                         justifyContent: open ? 'initial' : 'center',
                                         px: open ? 2 : 1.5,
+                                        bgcolor: item.primary ? 'primary.main' : 'transparent',
+                                        color: item.primary ? 'white' : 'inherit',
+                                        '&:hover': {
+                                            bgcolor: item.primary ? 'primary.dark' : 'action.hover',
+                                        },
+                                        '&.Mui-selected': {
+                                            bgcolor: item.primary ? 'primary.dark' : 'primary.lighter',
+                                            '&:hover': {
+                                                bgcolor: item.primary ? 'primary.dark' : 'primary.light',
+                                            },
+                                        },
                                     }}
                                 >
-                                    <ListItemIcon sx={{ minWidth: open ? 40 : 0, justifyContent: 'center' }}>
-                                        <SettingsIcon />
+                                    <ListItemIcon
+                                        sx={{
+                                            minWidth: open ? 40 : 0,
+                                            justifyContent: 'center',
+                                            color: item.primary ? 'inherit' : (isSelected(item.path) ? 'primary.main' : 'text.secondary'),
+                                        }}
+                                    >
+                                        {item.icon}
                                     </ListItemIcon>
                                     {open && (
-                                        <>
-                                            <ListItemText
-                                                primary="Admin"
-                                                primaryTypographyProps={{ fontSize: '0.875rem' }}
-                                            />
-                                            {adminOpen ? <ExpandLess /> : <ExpandMore />}
-                                        </>
+                                        <ListItemText
+                                            primary={item.label}
+                                            primaryTypographyProps={{
+                                                fontSize: '0.875rem',
+                                                fontWeight: isSelected(item.path) ? 600 : 400,
+                                            }}
+                                        />
                                     )}
                                 </ListItemButton>
                             </Tooltip>
                         </ListItem>
-
-                        {open && (
-                            <Collapse in={adminOpen} timeout="auto" unmountOnExit>
-                                <List component="div" disablePadding>
-                                    {adminItems.map((item) => (
-                                        <ListItem key={item.path} disablePadding sx={{ px: 1 }}>
-                                            <ListItemButton
-                                                selected={isSelected(item.path)}
-                                                onClick={() => handleNavigate(item.path)}
-                                                sx={{ borderRadius: 2, mb: 0.5, pl: 4 }}
-                                            >
-                                                <ListItemIcon sx={{ minWidth: 40 }}>
-                                                    {item.icon}
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={item.label}
-                                                    primaryTypographyProps={{ fontSize: '0.875rem' }}
-                                                />
-                                            </ListItemButton>
-                                        </ListItem>
-                                    ))}
-                                </List>
-                            </Collapse>
-                        )}
-                    </>
-                )}
+                    );
+                })}
             </List>
 
             {/* Footer */}

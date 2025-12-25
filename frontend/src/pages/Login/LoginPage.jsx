@@ -112,7 +112,7 @@ function LoginPage() {
                             ezFLM System
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                            File Lifecycle Management
+                            ezFile Lifecycle Management
                         </Typography>
                     </Box>
 

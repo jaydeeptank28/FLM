@@ -79,7 +79,8 @@ function App() {
                     </Route>
 
                     {/* Import/Export */}
-                    <Route path="import-export" element={<ComingSoonPage />} />
+                    <Route path="import" element={<ComingSoonPage />} />
+                    <Route path="export" element={<ComingSoonPage />} />
 
                     {/* 404 */}
                     <Route path="*" element={<NotFoundPage />} />

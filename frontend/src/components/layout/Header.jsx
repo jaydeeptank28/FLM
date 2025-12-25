@@ -109,7 +109,7 @@ function Header({ open, onMenuClick }) {
 
                     <Box>
                         <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-                            File Lifecycle Management
+                            ezFile Lifecycle Management
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                             Enterprise Document Workflow System
