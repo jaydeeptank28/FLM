@@ -110,6 +110,10 @@ const performWorkflowAction = asyncHandler(async (req, res) => {
         ipAddress
     );
 
+    // Add isTracked and allowedActions like getById does
+    file.isTracked = (file.trackedBy || []).includes(req.user.id);
+    file.allowedActions = await filesService.getAllowedActions(req.params.id, req.user.id);
+
     return ApiResponse.success(res, file, `Action ${action} performed successfully`);
 });
 

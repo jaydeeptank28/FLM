@@ -330,7 +330,7 @@ class FilesService {
                 file_id: file.id,
                 action: 'CREATED',
                 performed_by: userId,
-                details: `File created as draft. Workflow: ${template.name}. Scope: ${template.scopeReason}. ${template.selectionReason}`,
+                details: `File created as draft. Workflow: ${template.name}.`,
                 metadata: JSON.stringify({
                     workflowId: template.id,
                     workflowName: template.name,
@@ -706,7 +706,9 @@ class FilesService {
 
     // Perform workflow action
     async performWorkflowAction(fileId, userId, action, remarks = '', ipAddress = null) {
-        return this.workflowEngine.executeAction(fileId, userId, action, remarks, ipAddress);
+        await this.workflowEngine.executeAction(fileId, userId, action, remarks, ipAddress);
+        // Return full file data with auditTrail, workflowParticipants etc.
+        return this.getById(fileId);
     }
 
     // Share file

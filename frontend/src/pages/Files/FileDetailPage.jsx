@@ -28,7 +28,11 @@ import {
     AccordionDetails,
     Alert,
     CircularProgress,
-    Skeleton
+    Skeleton,
+    Stepper,
+    Step,
+    StepLabel,
+    Paper
 } from '@mui/material';
 import {
     ArrowBack as ArrowBackIcon,
@@ -133,7 +137,7 @@ function FileDetailPage() {
     const notings = file.notings || [];
     const documents = file.documents || [];
     const auditTrail = file.auditTrail || [];
-    const workflowParticipants = file.workflowParticipants || [];
+    const workflowParticipants = file.workflow?.participants || file.workflowParticipants || [];
     const allowedActions = file.allowedActions || [];
     const attributeHistory = file.attributeHistory || [];
 
@@ -508,61 +512,144 @@ function FileDetailPage() {
 
                     {/* Tab 4: Workflow */}
                     <TabPanel value={tabValue} index={3}>
-                        <Grid container spacing={3}>
-                            <Grid item xs={12} md={4}>
-                                <Card variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
-                                    <Typography variant="subtitle2" color="text.secondary">Current Level</Typography>
-                                    <Typography variant="h3" fontWeight={700} color="primary.main">
-                                        {file.current_workflow_level || 0}
+                        <Paper sx={{ p: 3, bgcolor: 'grey.50', borderRadius: 2 }}>
+                            {/* Workflow Header */}
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                                <Box>
+                                    <Typography variant="h6" fontWeight={700}>
+                                        {file.workflow?.templateName || 'Workflow Progress'}
                                     </Typography>
-                                    <Typography variant="body2">of {file.max_workflow_levels || 3} levels</Typography>
-                                </Card>
-                            </Grid>
-                            <Grid item xs={12} md={8}>
-                                <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                                    Workflow Participants
-                                </Typography>
-                                {workflowParticipants.length === 0 ? (
                                     <Typography variant="body2" color="text.secondary">
-                                        No workflow actions taken yet.
+                                        Level {file.current_level || 0} of {file.max_levels || 0}
                                     </Typography>
-                                ) : (
-                                    <List>
-                                        {workflowParticipants.map((participant, idx) => (
-                                            <ListItem key={idx} sx={{ bgcolor: 'grey.50', borderRadius: 1, mb: 1 }}>
-                                                <ListItemIcon>
-                                                    <PersonIcon />
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                            <Typography fontWeight={500}>Level {participant.level}: {participant.role}</Typography>
-                                                            <Chip
-                                                                label={participant.action}
-                                                                size="small"
-                                                                color={participant.action === 'APPROVED' ? 'success' : participant.action === 'RETURNED' ? 'warning' : 'default'}
-                                                            />
+                                </Box>
+                                <Chip 
+                                    label={currentState} 
+                                    color={currentState === 'APPROVED' ? 'success' : currentState === 'IN_REVIEW' ? 'warning' : 'default'}
+                                    size="small"
+                                />
+                            </Box>
+
+                            {/* Stepper Timeline */}
+                            {(file.workflow?.levels || []).length === 0 ? (
+                                <Alert severity="info">No workflow levels configured for this file.</Alert>
+                            ) : (
+                                <Stepper orientation="vertical" activeStep={-1}>
+                                    {/* File Created Step */}
+                                    <Step expanded active completed>
+                                        <StepLabel 
+                                            icon={
+                                                <Box sx={{ 
+                                                    width: 28, height: 28, borderRadius: '50%', 
+                                                    bgcolor: 'primary.main', color: 'white',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: 14, fontWeight: 700
+                                                }}>
+                                                    ✓
+                                                </Box>
+                                            }
+                                        >
+                                            <Typography fontWeight={600}>File Created</Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                By {file.creator?.name || createdByName} • {formatDate(createdAt)}
+                                            </Typography>
+                                        </StepLabel>
+                                    </Step>
+
+                                    {/* Workflow Levels */}
+                                    {(file.workflow?.levels || []).map((level) => {
+                                        const isCompleted = level.status === 'COMPLETED';
+                                        const isActive = level.status === 'ACTIVE';
+                                        const isSkipped = level.status === 'SKIPPED';
+                                        const isReturned = level.status === 'RETURNED';
+
+                                        const getIcon = () => {
+                                            if (isCompleted) return '✓';
+                                            if (isSkipped) return '⏭';
+                                            if (isReturned) return '↩';
+                                            if (isActive) return level.level;
+                                            return level.level;
+                                        };
+
+                                        const getIconBgColor = () => {
+                                            if (isCompleted) return 'success.main';
+                                            if (isSkipped) return 'grey.400';
+                                            if (isReturned) return 'error.main';
+                                            if (isActive) return 'warning.main';
+                                            return 'grey.300';
+                                        };
+
+                                        return (
+                                            <Step key={level.level} expanded active={isActive || isCompleted}>
+                                                <StepLabel
+                                                    icon={
+                                                        <Box sx={{ 
+                                                            width: 28, height: 28, borderRadius: '50%', 
+                                                            bgcolor: getIconBgColor(), color: 'white',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontSize: isCompleted || isSkipped || isReturned ? 14 : 12, 
+                                                            fontWeight: 700
+                                                        }}>
+                                                            {getIcon()}
                                                         </Box>
                                                     }
-                                                    secondary={
-                                                        <Box>
-                                                            <Typography variant="body2">
-                                                                By: {participant.action_by_name || 'Unknown'} • {formatDate(participant.action_at)}
-                                                            </Typography>
-                                                            {participant.remarks && (
-                                                                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                                                                    "{participant.remarks}"
-                                                                </Typography>
-                                                            )}
+                                                >
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <Typography fontWeight={600} color={isSkipped ? 'text.secondary' : 'text.primary'}>
+                                                            {level.role_required?.replace(/_/g, ' ') || `Level ${level.level}`}
+                                                        </Typography>
+                                                        {isSkipped && (
+                                                            <Chip label="Skipped" size="small" variant="outlined" />
+                                                        )}
+                                                    </Box>
+                                                    <Typography variant="caption" color="text.secondary" display="block">
+                                                        {isCompleted && `✓ Approved by ${level.completed_by_name || 'Unknown'} • ${formatDate(level.completed_at)}`}
+                                                        {isActive && '⏳ Pending approval...'}
+                                                        {isSkipped && 'Auto-skipped (higher authority)'}
+                                                        {isReturned && '↩ Returned for corrections'}
+                                                        {!isCompleted && !isActive && !isSkipped && !isReturned && '○ Waiting'}
+                                                    </Typography>
+                                                    {level.remarks && (
+                                                        <Typography variant="caption" sx={{ fontStyle: 'italic', mt: 0.5, display: 'block' }}>
+                                                            "{level.remarks}"
+                                                        </Typography>
+                                                    )}
+                                                </StepLabel>
+                                            </Step>
+                                        );
+                                    })}
+
+                                    {/* Final Step */}
+                                    {(() => {
+                                        const isWorkflowComplete = currentState === 'APPROVED' || currentState === 'ARCHIVED';
+                                        return (
+                                            <Step expanded active={isWorkflowComplete}>
+                                                <StepLabel
+                                                    icon={
+                                                        <Box sx={{ 
+                                                            width: 28, height: 28, borderRadius: '50%', 
+                                                            bgcolor: isWorkflowComplete ? 'success.main' : 'grey.300', 
+                                                            color: 'white',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontSize: 14, fontWeight: 700
+                                                        }}>
+                                                            {isWorkflowComplete ? '✓' : '○'}
                                                         </Box>
                                                     }
-                                                />
-                                            </ListItem>
-                                        ))}
-                                    </List>
-                                )}
-                            </Grid>
-                        </Grid>
+                                                >
+                                                    <Typography fontWeight={600} color={isWorkflowComplete ? 'success.main' : 'text.secondary'}>
+                                                        Final Approval
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {isWorkflowComplete ? 'Workflow Complete ✓' : 'Pending completion'}
+                                                    </Typography>
+                                                </StepLabel>
+                                            </Step>
+                                        );
+                                    })()}
+                                </Stepper>
+                            )}
+                        </Paper>
                     </TabPanel>
 
                     {/* Tab 5: Audit Trail */}
@@ -575,28 +662,54 @@ function FileDetailPage() {
                             />
                         ) : (
                             <List>
-                                {[...auditTrail].reverse().map((entry) => (
-                                    <ListItem
-                                        key={entry.id}
-                                        sx={{
-                                            bgcolor: 'grey.50',
-                                            borderRadius: 1,
-                                            mb: 1,
-                                            borderLeft: 4,
-                                            borderColor: 'primary.main'
-                                        }}
-                                    >
-                                        <ListItemText
-                                            primary={
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <Chip label={entry.action} size="small" variant="outlined" />
-                                                    <Typography variant="body2">{entry.details}</Typography>
-                                                </Box>
-                                            }
-                                            secondary={`${entry.performed_by_name || 'Unknown'} • ${formatDate(entry.performed_at)}`}
-                                        />
-                                    </ListItem>
-                                ))}
+                                {[...auditTrail].reverse().map((entry) => {
+                                    // Determine chip color based on action
+                                    const getActionColor = (action) => {
+                                        if (['APPROVE', 'APPROVED'].includes(action)) return 'success';
+                                        if (['RETURN', 'RETURNED'].includes(action)) return 'warning';
+                                        if (['REJECT', 'REJECTED'].includes(action)) return 'error';
+                                        if (['SUBMIT', 'RESUBMIT'].includes(action)) return 'info';
+                                        if (['HOLD', 'CABINET'].includes(action)) return 'secondary';
+                                        if (['ARCHIVE', 'ARCHIVED'].includes(action)) return 'default';
+                                        if (['CREATED', 'UPDATED'].includes(action)) return 'primary';
+                                        return 'default';
+                                    };
+                                    
+                                    const getBorderColor = (action) => {
+                                        if (['APPROVE', 'APPROVED'].includes(action)) return 'success.main';
+                                        if (['RETURN', 'RETURNED'].includes(action)) return 'warning.main';
+                                        if (['REJECT', 'REJECTED'].includes(action)) return 'error.main';
+                                        if (['SUBMIT', 'RESUBMIT'].includes(action)) return 'info.main';
+                                        return 'primary.main';
+                                    };
+
+                                    return (
+                                        <ListItem
+                                            key={entry.id}
+                                            sx={{
+                                                bgcolor: 'grey.50',
+                                                borderRadius: 1,
+                                                mb: 1,
+                                                borderLeft: 4,
+                                                borderColor: getBorderColor(entry.action)
+                                            }}
+                                        >
+                                            <ListItemText
+                                                primary={
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <Chip 
+                                                            label={entry.action} 
+                                                            size="small" 
+                                                            color={getActionColor(entry.action)}
+                                                        />
+                                                        <Typography variant="body2">{entry.details}</Typography>
+                                                    </Box>
+                                                }
+                                                secondary={`${entry.performed_by_name || 'Unknown'} • ${formatDate(entry.performed_at)}`}
+                                            />
+                                        </ListItem>
+                                    );
+                                })}
                             </List>
                         )}
                     </TabPanel>
