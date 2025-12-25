@@ -29,6 +29,8 @@ import SearchPage from './pages/Search/SearchPage';
 import UsersPage from './pages/Admin/UsersPage';
 import DepartmentsPage from './pages/Admin/DepartmentsPage';
 import WorkflowsPage from './pages/Admin/WorkflowsPage';
+import NotFoundPage from './pages/NotFoundPage';
+import ComingSoonPage from './pages/ComingSoonPage';
 
 function App() {
   return (
@@ -76,13 +78,11 @@ function App() {
                       <Route path="workflows" element={<WorkflowsPage />} />
                     </Route>
 
+                    {/* Import/Export */}
+                    <Route path="import-export" element={<ComingSoonPage />} />
+
                     {/* 404 */}
-                    <Route path="*" element={
-                      <div style={{ padding: 20, textAlign: 'center' }}>
-                        <h2>Page Not Found</h2>
-                        <p>The page you are looking for does not exist.</p>
-                      </div>
-                    } />
+                    <Route path="*" element={<NotFoundPage />} />
                   </Route>
                 </Routes>
               </BrowserRouter>

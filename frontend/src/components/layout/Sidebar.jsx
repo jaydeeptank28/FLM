@@ -36,7 +36,8 @@ import {
     ExpandLess,
     ExpandMore,
     Description as FileIcon,
-    ChevronLeft as ChevronLeftIcon
+    ChevronLeft as ChevronLeftIcon,
+    ImportExport as ImportExportIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFiles } from '../../contexts/FileContext';
@@ -162,6 +163,11 @@ function Sidebar({ open, onClose, onToggle }) {
             label: 'Search',
             icon: <SearchIcon />,
             path: '/search',
+        },
+        {
+            label: 'Import / Export',
+            icon: <ImportExportIcon />,
+            path: '/import-export',
         },
     ];
 

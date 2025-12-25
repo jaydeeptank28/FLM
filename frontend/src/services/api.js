@@ -1,7 +1,7 @@
 // Centralized API Service
 // Replaces all localStorage and demo data access with real API calls
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4747/api';
 
 class ApiService {
     constructor() {
