@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js",
+    "dev": "node --watch-path=./src --watch-path=./index.js index.js",
     "migrate": "npx knex migrate:latest",
     "migrate:rollback": "npx knex migrate:rollback",
     "seed": "npx knex seed:run"
