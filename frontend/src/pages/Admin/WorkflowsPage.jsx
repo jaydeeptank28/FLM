@@ -72,14 +72,14 @@ function WorkflowsPage() {
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
 
-    // Available roles for dropdown - FLM Standard (values match database)
+    // Available roles for dropdown - FLM Standard (values match database - spaces, no underscores)
     const availableRoles = [
         { value: 'Clerk', label: 'L1: Clerk', authority: 1 },
-        { value: 'Section_Officer', label: 'L2: Section Officer', authority: 2 },
-        { value: 'Under_Secretary', label: 'L3: Under Secretary', authority: 3 },
-        { value: 'Deputy_Secretary', label: 'L4: Deputy Secretary', authority: 4 },
-        { value: 'Joint_Secretary', label: 'L5: Joint Secretary', authority: 5 },
-        { value: 'Additional_Secretary', label: 'L6: Additional Secretary', authority: 6 },
+        { value: 'Section Officer', label: 'L2: Section Officer', authority: 2 },
+        { value: 'Under Secretary', label: 'L3: Under Secretary', authority: 3 },
+        { value: 'Deputy Secretary', label: 'L4: Deputy Secretary', authority: 4 },
+        { value: 'Joint Secretary', label: 'L5: Joint Secretary', authority: 5 },
+        { value: 'Additional Secretary', label: 'L6: Additional Secretary', authority: 6 },
         { value: 'Secretary', label: 'L7: Secretary', authority: 7 }
     ];
 
