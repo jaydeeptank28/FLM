@@ -21,14 +21,14 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const create = asyncHandler(async (req, res) => {
-    const { name, email, password, departmentRoles } = req.body;
+    const { name, email, password, departmentRoles, sendWelcomeEmail } = req.body;
 
     if (!name || !email || !password) {
         return ApiResponse.badRequest(res, 'Name, email, and password are required');
     }
 
     const usersService = new UsersService(req.db);
-    const user = await usersService.create({ name, email, password, departmentRoles });
+    const user = await usersService.create({ name, email, password, departmentRoles, sendWelcomeEmail });
 
     return ApiResponse.created(res, user, 'User created successfully');
 });

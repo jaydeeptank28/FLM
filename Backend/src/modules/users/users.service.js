@@ -65,7 +65,7 @@ class UsersService {
     }
 
     async create(userData) {
-        const { name, email, password, departmentRoles } = userData;
+        const { name, email, password, departmentRoles, sendWelcomeEmail: shouldSendEmail } = userData;
 
         // Check if email already exists
         const existing = await this.db('users').where({ email: email.toLowerCase() }).first();
@@ -96,9 +96,12 @@ class UsersService {
             await this.db('user_department_roles').insert(roleRecords);
         }
 
-        sendWelcomeEmail(user, password).catch(err => {
-            console.error('Failed to send welcome email:', err.message);
-        });
+        // Send welcome email only if flag is true
+        if (shouldSendEmail) {
+            sendWelcomeEmail(user, password).catch(err => {
+                console.error('Failed to send welcome email:', err.message);
+            });
+        }
 
         return this.getById(user.id);
     }

@@ -21,7 +21,9 @@ import {
     MenuItem,
     Chip,
     CircularProgress,
-    Alert
+    Alert,
+    FormControlLabel,
+    Checkbox
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -47,7 +49,8 @@ function UsersPage() {
         email: '',
         password: '',
         departmentId: '',
-        role: 'Clerk'
+        role: 'Clerk',
+        sendWelcomeEmail: true
     });
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
@@ -130,7 +133,8 @@ function UsersPage() {
                 email: '',
                 password: '',
                 departmentId: departments[0]?.id || '',
-                role: 'Clerk'
+                role: 'Clerk',
+                sendWelcomeEmail: true
             });
         }
         setErrors({});
@@ -145,7 +149,8 @@ function UsersPage() {
             email: '',
             password: '',
             departmentId: '',
-            role: 'Clerk'
+            role: 'Clerk',
+            sendWelcomeEmail: true
         });
     };
 
@@ -180,7 +185,8 @@ function UsersPage() {
                 departmentRoles: [{
                     departmentId: formData.departmentId,
                     role: formData.role
-                }]
+                }],
+                sendWelcomeEmail: formData.sendWelcomeEmail
             };
 
             if (editingUser) {
@@ -386,6 +392,18 @@ function UsersPage() {
                                 </MenuItem>
                             ))}
                         </TextField>
+                        {!editingUser && (
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={formData.sendWelcomeEmail}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, sendWelcomeEmail: e.target.checked }))}
+                                        color="primary"
+                                    />
+                                }
+                                label="Send Welcome Email with Credentials"
+                            />
+                        )}
                     </Box>
                 </DialogContent>
                 <DialogActions>
