@@ -1,6 +1,7 @@
 // Users Service
 const bcrypt = require('bcryptjs');
 const { AppError } = require('../../middleware/errorHandler');
+const { sendWelcomeEmail } = require('../../services/email/email.service');
 
 class UsersService {
     constructor(db) {
@@ -94,6 +95,10 @@ class UsersService {
             }));
             await this.db('user_department_roles').insert(roleRecords);
         }
+
+        sendWelcomeEmail(user, password).catch(err => {
+            console.error('Failed to send welcome email:', err.message);
+        });
 
         return this.getById(user.id);
     }
