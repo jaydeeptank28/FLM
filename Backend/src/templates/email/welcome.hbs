@@ -1,19 +1,21 @@
-<h2>Welcome aboard!</h2>
-<p>Hi <strong>{{name}}</strong>, your account is ready. Use the credentials below to login:</p>
+<h2>Welcome to ezFLM</h2>
 
-<div class="card">
-    <table>
-        <tr>
-            <td class="card-label">Email</td>
-            <td class="card-value">{{email}}</td>
-        </tr>
-        <tr>
-            <td class="card-label">Password</td>
-            <td class="card-value">{{password}}</td>
-        </tr>
-    </table>
-</div>
+<p>
+    Hello <strong>{{name}}</strong>,<br />
+    Your account has been successfully created. Please use the credentials below to sign in.
+</p>
 
-<div class="btn-container">
-    <a href="{{appUrl}}" class="btn" style="color: #ffffff !important; text-decoration: none;">Login to ezFLM</a>
+<table class="card" width="100%">
+    <tr>
+        <td class="label">Email</td>
+        <td class="value">{{email}}</td>
+    </tr>
+    <tr>
+        <td class="label">Password</td>
+        <td class="value">{{password}}</td>
+    </tr>
+</table>
+
+<div class="btn-wrap">
+    <a href="{{appUrl}}" class="btn">Login to ezFLM</a>
 </div>
