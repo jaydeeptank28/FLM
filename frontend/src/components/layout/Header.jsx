@@ -71,6 +71,20 @@ function Header({ open, onMenuClick }) {
     const userDepartments = getUserDepartments();
     const canSwitchDepartment = userDepartments.length > 1;
 
+    const getInitials = (name) => {
+        if (!name) return 'U';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length >= 2) {
+            return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    };
+
+    const formatRole = (role) => {
+        if (!role) return '';
+        return role.replace(/_/g, ' ');
+    };
+
     return (
         <AppBar
             position="fixed"
@@ -135,7 +149,7 @@ function Header({ open, onMenuClick }) {
                                     fontSize: '0.875rem',
                                 }}
                             >
-                                {currentUser?.name?.charAt(0) || 'U'}
+                                {getInitials(currentUser?.name)}
                             </Avatar>
                         </IconButton>
                     </Tooltip>
@@ -157,7 +171,7 @@ function Header({ open, onMenuClick }) {
                             {currentUser?.name || 'User'}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                            {currentRole} • {currentDepartment}
+                            {formatRole(currentRole)} • {currentDepartment}
                         </Typography>
                     </Box>
                     <Divider />
@@ -207,7 +221,7 @@ function Header({ open, onMenuClick }) {
                                     {dept.name || dept.code}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                    {dept.role}
+                                    {formatRole(dept.role)}
                                 </Typography>
                             </ListItemText>
                         </MenuItem>
